@@ -1,0 +1,6 @@
+{
+  "name": "sonicexe",
+  "description": "sonicexe - Playable mini recreation of Friday Night Funkin' Vs. Sonic.exe (v3.0 & v4.00000000) featuring Too Slow, Too Slow Encore, You Can't Run, You Can't Run Encore, Triple Trouble, Endless, and Endless OG with customizable keybinds and animated stages.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
