@@ -348,6 +348,31 @@ export const KeybindsModal: React.FC<KeybindsModalProps> = ({
                 </button>
               </div>
 
+              {/* Practice Mode (No Misses / No Game Over) */}
+              <div className="flex items-center justify-between py-2 border-b border-white/5">
+                <div>
+                  <div className="text-sm font-medium text-white">Practice Mode</div>
+                  <div className="text-xs text-slate-400">
+                    Removes misses & prevents game overs to learn sections
+                  </div>
+                </div>
+                <button
+                  onClick={() =>
+                    onChangeSettings({
+                      ...settings,
+                      practiceMode: !settings.practiceMode,
+                    })
+                  }
+                  className={`px-3.5 py-1.5 text-xs font-mono font-bold rounded-lg transition-colors whitespace-nowrap ${
+                    settings.practiceMode
+                      ? 'bg-cyan-500 text-black'
+                      : 'bg-white/10 text-slate-300'
+                  }`}
+                >
+                  {settings.practiceMode ? 'PRACTICE ON' : 'OFF'}
+                </button>
+              </div>
+
               {/* Botplay / Showcase Mode */}
               <div className="flex items-center justify-between py-2 border-b border-white/5">
                 <div>

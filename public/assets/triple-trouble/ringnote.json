@@ -1,0 +1,30 @@
+{
+  "version": "1.1.0",
+  "name": "Ring Note (EXE)",
+  "author": "",
+  "fallback": "funkin",
+  "assets": {
+    "note": {
+      "assetPath": "notekinds/ringnote/ring",
+      "scale": 0.7,
+      "offsets": [-100, 0],
+      "data": {
+        "left": { "prefix": "purple0000" },
+        "down": { "prefix": "blue0000" },
+        "up": { "prefix": "green0000" },
+        "right": { "prefix": "red0000" }
+      }
+    },
+    "noteSplash": {
+      "assetPath": "noteskins/BloodSplash",
+      "offsets": [35, 10],
+      "data": {
+        "enabled": true,
+        "leftSplashes": [{ "prefix": "Pop000" }],
+        "rightSplashes": [{ "prefix": "Pop000" }],
+        "upSplashes": [{ "prefix": "Pop000" }],
+        "downSplashes": [{ "prefix": "Pop000" }]
+      }
+    }
+  }
+}

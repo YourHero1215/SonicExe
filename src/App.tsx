@@ -2,10 +2,14 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   Disc,
   Keyboard,
+  Maximize2,
+  Minimize2,
   Pause,
   Play,
   RotateCcw,
+  Trash2,
   Trophy,
+  Upload,
   Volume2,
   VolumeX,
 } from 'lucide-react';
@@ -19,6 +23,10 @@ import {
   SongMetadata,
 } from './types/game';
 import { SONGS } from './data/songs';
+import { TOO_SLOW_NORMAL_CREDITS } from './data/tooSlowNormalData';
+import { TOO_SLOW_ENCORE_CREDITS } from './data/tooSlowEncoreData';
+import { YCR_NORMAL_CREDITS } from './data/ycrNormalData';
+import { YCR_ENCORE_CREDITS } from './data/ycrEncoreData';
 import {
   DEFAULT_KEYBINDS,
   formatKeyCode,
@@ -26,11 +34,20 @@ import {
 } from './components/KeybindsModal';
 import { FnfStageCanvas } from './components/FnfStageCanvas';
 import {
+  calculateAccuracy,
   calculateGrade,
   drawOpponentSprite,
   drawPlayerSprite,
+  drawSpeakerGirlfriend,
 } from './canvas/spriteRenderer';
-import { soundEngine } from './audio/soundEngine';
+import {
+  drawEndlessMajinStage,
+  drawPolishedStageBackLayers,
+  drawPolishedStageForegroundLayer,
+  drawTripleTroubleStage,
+  drawYcrCrimsonStage,
+} from './canvas/polishedStageRenderer';
+import { LoadedOggStem, soundEngine } from './audio/soundEngine';
 
 type SongFilter = 'all' | 'main' | 'encore' | 'soundtest';
 
@@ -43,8 +60,77 @@ export default function App() {
   const [selectedSongId, setSelectedSongId] = useState<SongId>('too-slow');
   const [songFilter, setSongFilter] = useState<SongFilter>('all');
   const [isKeybindsOpen, setIsKeybindsOpen] = useState<boolean>(false);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [runKey, setRunKey] = useState<number>(1);
   const [lastRunStats, setLastRunStats] = useState<PlayStats | null>(null);
+  const [loadedStems, setLoadedStems] = useState<LoadedOggStem[]>([]);
+  const [isUploadingOgg, setIsUploadingOgg] = useState<boolean>(false);
+  const oggInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleOggUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setIsUploadingOgg(true);
+    try {
+      const updated = await soundEngine.loadOggFilesForSong(
+        files,
+        selectedSongId
+      );
+      setLoadedStems([...updated]);
+      soundEngine.playRingCollect();
+      if (gameState === 'PLAYING' || gameState === 'PAUSED') {
+        setRunKey((k) => k + 1);
+        setGameState('PLAYING');
+      }
+    } finally {
+      setIsUploadingOgg(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleClearSongOgg = async (songId: SongId) => {
+    await soundEngine.clearEndlessOggStems(songId);
+    setLoadedStems([...soundEngine.getAllLoadedStems()]);
+    soundEngine.playMenuTick(false);
+  };
+
+  const toggleFullscreen = () => {
+    const next = !isFullscreen;
+    setIsFullscreen(next);
+    try {
+      if (next && !document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else if (!next && document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      }
+    } catch {
+      // Fallback to viewport fullscreen if iframe restricts native fullscreen
+    }
+  };
+
+  useEffect(() => {
+    const onFsChange = () => {
+      if (document.fullscreenElement) {
+        setIsFullscreen(true);
+      }
+    };
+    document.addEventListener('fullscreenchange', onFsChange);
+    return () => document.removeEventListener('fullscreenchange', onFsChange);
+  }, []);
+
+  useEffect(() => {
+    soundEngine
+      .restoreSavedEndlessStems()
+      .then((stems) => setLoadedStems([...stems]))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    soundEngine
+      .preloadSongStems(selectedSongId)
+      .then(() => setLoadedStems([...soundEngine.getAllLoadedStems()]))
+      .catch(() => {});
+  }, [selectedSongId]);
 
   const [keybinds, setKeybinds] = useState<KeybindConfig>(() => {
     try {
@@ -61,6 +147,7 @@ export default function App() {
       downscroll: false,
       scrollSpeedMultiplier: 1.0,
       ghostTapping: true,
+      practiceMode: false,
       botplay: false,
       crtFilter: true,
       hitSoundVolume: 0.7,
@@ -140,11 +227,56 @@ export default function App() {
       if (canvas) {
         const ctx = canvas.getContext('2d');
         if (ctx) {
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
           ctx.clearRect(0, 0, canvas.width, canvas.height);
-          // Cycle directional poses every 2.2 seconds so user can inspect the stolen/recreated mod sprites
+
+          const logicalW = 520;
+          const logicalH = 230;
+          ctx.save();
+          ctx.scale(canvas.width / logicalW, canvas.height / logicalH);
+
+          const gentlePan = Math.sin(elapsed * 0.0012) * 18;
+          // Draw High-Definition multi-layer stage maps in Freeplay preview
+          if (selectedSong.stageTheme === 'cursed-green-hill') {
+            drawPolishedStageBackLayers(
+              ctx,
+              logicalW,
+              logicalH,
+              selectedSong.id,
+              gentlePan
+            );
+          } else if (selectedSong.stageTheme === 'ycr-crimson') {
+            drawYcrCrimsonStage(ctx, logicalW, logicalH, elapsed, gentlePan);
+          } else if (selectedSong.stageTheme === 'endless-majin') {
+            drawEndlessMajinStage(ctx, logicalW, logicalH, gentlePan);
+          } else {
+            drawTripleTroubleStage(ctx, logicalW, logicalH, gentlePan);
+          }
+
+          // Keep Sonic.exe in the idle position when not hitting notes
           const poseCycle = Math.floor(elapsed / 650) % 6;
           const poses = ['idle', 'left', 'down', 'up', 'right', 'idle'] as const;
-          const activePose = poses[poseCycle];
+          const activePose =
+            selectedSong.initialOpponent === 'sonic-exe'
+              ? 'idle'
+              : poses[poseCycle];
+
+          if (selectedSong.stageTheme !== 'endless-majin') {
+            ctx.save();
+            ctx.translate(260, 148);
+            ctx.scale(0.68, 0.68);
+            drawSpeakerGirlfriend(
+              ctx,
+              0,
+              0,
+              selectedSong.bpm,
+              elapsed,
+              selectedSong.stageTheme,
+              selectedSong.id.includes('encore')
+            );
+            ctx.restore();
+          }
 
           drawOpponentSprite(
             ctx,
@@ -165,6 +297,16 @@ export default function App() {
             selectedSong.bpm,
             selectedSong.stageTheme
           );
+
+          if (selectedSong.stageTheme === 'cursed-green-hill') {
+            drawPolishedStageForegroundLayer(
+              ctx,
+              logicalW,
+              logicalH,
+              gentlePan
+            );
+          }
+          ctx.restore();
         }
       }
       rafId = requestAnimationFrame(animatePreview);
@@ -176,6 +318,7 @@ export default function App() {
 
   const startSong = (songId: SongId = selectedSongId) => {
     soundEngine.playMenuTick(true);
+    soundEngine.preloadSongStems(songId).catch(() => {});
     setSelectedSongId(songId);
     setRunKey((prev) => prev + 1);
     setLastRunStats(null);
@@ -184,15 +327,13 @@ export default function App() {
 
   const handleSongComplete = (finalStats: PlayStats) => {
     setLastRunStats(finalStats);
-    const acc =
-      finalStats.totalNotesEncountered > 0
-        ? ((finalStats.sicks +
-            finalStats.goods * 0.85 +
-            finalStats.bads * 0.5 +
-            finalStats.shits * 0.2) /
-            finalStats.totalNotesEncountered) *
-          100
-        : 100;
+    const totalJudged =
+      finalStats.sicks +
+      finalStats.goods +
+      finalStats.bads +
+      finalStats.shits +
+      finalStats.misses;
+    const acc = totalJudged > 0 ? calculateAccuracy(finalStats) : 100;
     const grade = calculateGrade(acc, finalStats.misses);
 
     setHighScores((prev) => {
@@ -202,7 +343,7 @@ export default function App() {
           ...prev,
           [selectedSong.id]: {
             score: finalStats.score,
-            accuracy: Number(acc.toFixed(1)),
+            accuracy: Number(acc.toFixed(2)),
             misses: finalStats.misses,
             maxCombo: finalStats.maxCombo,
             grade,
@@ -230,6 +371,16 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#09080D] text-[#F4F4F6]">
+      {/* Hidden File Input for Manual Music / Voice .OGG Adder */}
+      <input
+        ref={oggInputRef}
+        type="file"
+        accept=".ogg,audio/ogg,audio/*"
+        multiple
+        className="hidden"
+        onChange={handleOggUpload}
+      />
+
       {/* Top Bar Contract: Single-Row, 3 Zones */}
       <header className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-[#0D0B14]">
         {/* Zone 1: Single text element wordmark */}
@@ -446,7 +597,7 @@ export default function App() {
                           {record ? (
                             <div className="text-right font-mono text-xs tabular-nums">
                               <div className="text-emerald-400 font-bold">
-                                {record.grade} · {record.accuracy}%
+                                {record.accuracy}% ({calculateGrade(record.accuracy)})
                               </div>
                               <div className="text-slate-400">
                                 {record.score.toLocaleString()} pts
@@ -489,11 +640,11 @@ export default function App() {
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#12101B] via-black/30 to-transparent" />
 
-                  {/* Live Animated Opponent vs Boyfriend Sprite Preview */}
+                  {/* Live Animated Opponent vs Boyfriend Sprite Preview (2x Retina Resolution) */}
                   <canvas
                     ref={previewCanvasRef}
-                    width={520}
-                    height={230}
+                    width={1040}
+                    height={460}
                     className="absolute inset-0 w-full h-full pointer-events-none"
                   />
 
@@ -539,17 +690,172 @@ export default function App() {
                     </div>
                   </div>
 
+                  {/* Official V-Slice Credits for Too Slow, Too Slow Encore, You Can't Run & You Can't Run Encore */}
+                  {(selectedSong.id === 'too-slow' ||
+                    selectedSong.id === 'too-slow-encore' ||
+                    selectedSong.id === 'you-cant-run' ||
+                    selectedSong.id === 'you-cant-run-encore') && (
+                    <div className="p-3 rounded-lg bg-[#09080D] border border-white/10 text-xs space-y-1.5">
+                      <div className="flex items-center justify-between text-slate-400 font-mono text-[11px]">
+                        <span>
+                          OFFICIAL CREDITS (
+                          {selectedSong.id.includes('encore')
+                            ? 'credits-erect.json'
+                            : 'credits.json'}
+                          )
+                        </span>
+                        <span>
+                          {selectedSong.id === 'too-slow-encore'
+                            ? 'sonicexefake → sonic-exe'
+                            : selectedSong.id.includes('you-cant-run')
+                              ? 'ycr-exe ↔ pixel-exe'
+                              : 'sonic-exe'}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px]">
+                        {(selectedSong.id === 'too-slow-encore'
+                          ? TOO_SLOW_ENCORE_CREDITS.sections
+                          : selectedSong.id === 'too-slow'
+                            ? TOO_SLOW_NORMAL_CREDITS.sections
+                            : selectedSong.id === 'you-cant-run-encore'
+                              ? YCR_ENCORE_CREDITS.sections
+                              : YCR_NORMAL_CREDITS.sections
+                        ).map((sec) => (
+                          <div key={sec.title} className="truncate">
+                            <span className="text-red-400 font-bold">
+                              {sec.title}:
+                            </span>{' '}
+                            <span className="text-slate-300">
+                              {sec.names.join(', ')}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Manual Music / Voice .OGG Adder Panel */}
+                  {(() => {
+                    const activeSongStems = soundEngine.getStemsForSong(
+                      selectedSong.id
+                    );
+                    const customSongStems = soundEngine.getCustomStemsForSong(
+                      selectedSong.id
+                    );
+                    return (
+                      <div className="p-3.5 rounded-lg bg-[#09080D] border border-red-500/30 space-y-2.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <Disc className="w-3.5 h-3.5 text-red-400 animate-spin" />
+                              <span className="text-xs font-bold text-white">
+                                Manual Music / Voice .OGG Adder
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-400 mt-0.5">
+                              Add <code className="text-slate-200">Inst.ogg</code> &{' '}
+                              <code className="text-slate-200">Voices.ogg</code> (files
+                              with &quot;you cant run&quot; auto-route to You Can&apos;t
+                              Run)
+                            </p>
+                          </div>
+
+                          <div className="flex items-center gap-1.5">
+                            {customSongStems.length > 0 && (
+                              <button
+                                onClick={() =>
+                                  handleClearSongOgg(selectedSong.id)
+                                }
+                                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-red-500/20 border border-white/10 hover:border-red-500/40 text-[11px] font-mono text-slate-300 hover:text-red-300 transition-colors whitespace-nowrap"
+                                title="Clear custom uploaded .ogg stems for this song"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                                Reset
+                              </button>
+                            )}
+                            <button
+                              onClick={() => oggInputRef.current?.click()}
+                              disabled={isUploadingOgg}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition-colors whitespace-nowrap"
+                            >
+                              <Upload className="w-3.5 h-3.5" />
+                              {isUploadingOgg
+                                ? 'Loading...'
+                                : '+ Add .OGG Files'}
+                            </button>
+                          </div>
+                        </div>
+
+                        {activeSongStems.length > 0 ? (
+                          <div className="space-y-1 pt-1 border-t border-white/10">
+                            {activeSongStems.map((stem) => {
+                              const mins = Math.floor(stem.durationSec / 60);
+                              const secs = String(
+                                Math.floor(stem.durationSec % 60)
+                              ).padStart(2, '0');
+                              const roleLabel =
+                                stem.role === 'inst'
+                                  ? 'INST'
+                                  : stem.role === 'voices-bf'
+                                    ? 'BF VOICE'
+                                    : stem.role === 'voices-opp'
+                                      ? 'EXE VOICE'
+                                      : stem.role === 'voices-combined'
+                                        ? 'VOICES'
+                                        : 'STEM';
+                              return (
+                                <div
+                                  key={stem.id}
+                                  className="flex items-center justify-between text-[11px] font-mono bg-white/5 px-2.5 py-1 rounded border border-white/5"
+                                >
+                                  <div className="flex items-center gap-2 truncate">
+                                    <span
+                                      className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                                        stem.role === 'inst'
+                                          ? 'bg-amber-500/20 text-amber-300'
+                                          : 'bg-cyan-500/20 text-cyan-300'
+                                      }`}
+                                    >
+                                      {roleLabel}
+                                    </span>
+                                    <span className="text-slate-200 truncate">
+                                      {stem.name}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2 shrink-0 text-slate-400">
+                                    <span>
+                                      {stem.isBuiltIn ? 'BUILT-IN' : 'CUSTOM'}
+                                    </span>
+                                    <span>·</span>
+                                    <span>
+                                      {mins}:{secs}
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <div className="text-[11px] font-mono text-slate-500 pt-1 border-t border-white/10">
+                            No .ogg stems loaded yet — click &quot;+ Add .OGG
+                            Files&quot; to link Inst.ogg &amp; Voices.ogg
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+
                   {/* Quick Keybinds & Modifiers Bar */}
                   <div className="p-3.5 rounded-lg bg-[#09080D] border border-white/10 space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-semibold text-slate-300">
-                        Active Note Keybinds
+                        Active Note Keybinds & Gameplay Settings
                       </span>
                       <button
                         onClick={() => setIsKeybindsOpen(true)}
                         className="text-xs font-semibold text-red-400 hover:text-red-300 transition-colors"
                       >
-                        Customize Keybinds →
+                        Customize Keybinds & Settings →
                       </button>
                     </div>
 
@@ -566,6 +872,33 @@ export default function App() {
                       <div className="py-1.5 rounded bg-white/5 border border-[#F9393F]/50 text-white font-bold">
                         → {formatKeyCode(keybinds.right)}
                       </div>
+                    </div>
+
+                    {/* Practice Mode Toggle in Gameplay Settings */}
+                    <div className="flex items-center justify-between pt-2 border-t border-white/10">
+                      <div>
+                        <div className="text-xs font-bold text-white">
+                          Practice Mode
+                        </div>
+                        <div className="text-[11px] text-slate-400">
+                          Removes misses & prevents game overs to learn difficult sections
+                        </div>
+                      </div>
+                      <button
+                        onClick={() =>
+                          setSettings((s) => ({
+                            ...s,
+                            practiceMode: !s.practiceMode,
+                          }))
+                        }
+                        className={`px-3.5 py-1.5 rounded-lg text-xs font-mono font-bold border transition-colors whitespace-nowrap ${
+                          settings.practiceMode
+                            ? 'bg-cyan-500 text-black border-cyan-400'
+                            : 'bg-white/5 text-slate-300 border-white/10 hover:text-white'
+                        }`}
+                      >
+                        {settings.practiceMode ? 'PRACTICE: ON' : 'PRACTICE: OFF'}
+                      </button>
                     </div>
                   </div>
 
@@ -604,7 +937,7 @@ export default function App() {
         {(gameState === 'PLAYING' || gameState === 'PAUSED') && (
           <div className="space-y-4">
             {/* Quick Stage Action Strip */}
-            <div className="flex flex-wrap items-center justify-between gap-3 max-w-[1280px] mx-auto px-1">
+            <div className="flex flex-wrap items-center justify-between gap-3 max-w-[1440px] mx-auto px-1">
               <div className="flex items-center gap-3 text-xs text-slate-300">
                 <button
                   onClick={() => setGameState('TITLE_MENU')}
@@ -619,9 +952,33 @@ export default function App() {
                   <RotateCcw className="w-3.5 h-3.5" />
                   Restart ({formatKeyCode(keybinds.reset)})
                 </button>
+                <button
+                  onClick={() => oggInputRef.current?.click()}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600/20 hover:bg-red-600/30 text-red-200 border border-red-500/40 font-semibold transition-colors whitespace-nowrap"
+                >
+                  <Upload className="w-3.5 h-3.5 text-red-400" />
+                  + Add Music / Voice .OGG ({loadedStems.filter((s) => s.targetSongId === selectedSong.id && !s.isBuiltIn).length || soundEngine.getStemsForSong(selectedSong.id).length})
+                </button>
               </div>
 
               <div className="flex items-center gap-3">
+                <button
+                  onClick={toggleFullscreen}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600/20 hover:bg-red-600/30 border border-red-500/40 text-xs font-semibold text-red-200 transition-colors whitespace-nowrap"
+                >
+                  {isFullscreen ? (
+                    <>
+                      <Minimize2 className="w-3.5 h-3.5 text-red-400" />
+                      Exit Fullscreen
+                    </>
+                  ) : (
+                    <>
+                      <Maximize2 className="w-3.5 h-3.5 text-red-400" />
+                      Fullscreen (1920x1080)
+                    </>
+                  )}
+                </button>
+
                 <button
                   onClick={() =>
                     setSettings((s) => ({
@@ -632,6 +989,22 @@ export default function App() {
                   className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-mono text-slate-200 transition-colors whitespace-nowrap"
                 >
                   {settings.downscroll ? 'Downscroll' : 'Upscroll'}
+                </button>
+
+                <button
+                  onClick={() =>
+                    setSettings((s) => ({
+                      ...s,
+                      practiceMode: !s.practiceMode,
+                    }))
+                  }
+                  className={`px-3 py-1.5 rounded-lg border text-xs font-mono font-bold transition-colors whitespace-nowrap ${
+                    settings.practiceMode
+                      ? 'bg-cyan-500 text-black border-cyan-400'
+                      : 'bg-white/5 text-slate-300 border-white/10'
+                  }`}
+                >
+                  {settings.practiceMode ? 'Practice: ON' : 'Practice: OFF'}
                 </button>
 
                 <button
@@ -679,6 +1052,8 @@ export default function App() {
                 keybinds={keybinds}
                 settings={settings}
                 isPaused={gameState === 'PAUSED' || isKeybindsOpen}
+                isFullscreen={isFullscreen}
+                onToggleFullscreen={toggleFullscreen}
                 onPauseToggle={() =>
                   setGameState((st) =>
                     st === 'PAUSED' ? 'PLAYING' : 'PAUSED'
@@ -759,7 +1134,7 @@ export default function App() {
                   </h2>
                 </div>
                 <div className="text-right font-mono">
-                  <div className="text-xs text-slate-400">RANK</div>
+                  <div className="text-xs text-slate-400">ACCURACY</div>
                   <div
                     className={`text-2xl font-extrabold ${
                       gameState === 'GAME_OVER'
@@ -767,19 +1142,20 @@ export default function App() {
                         : 'text-emerald-400'
                     }`}
                   >
-                    {gameState === 'GAME_OVER'
-                      ? 'FAILED'
-                      : calculateGrade(
-                          lastRunStats.totalNotesEncountered > 0
-                            ? ((lastRunStats.sicks +
-                                lastRunStats.goods * 0.85 +
-                                lastRunStats.bads * 0.5 +
-                                lastRunStats.shits * 0.2) /
-                                lastRunStats.totalNotesEncountered) *
-                                100
-                            : 100,
-                          lastRunStats.misses
-                        )}
+                    {(() => {
+                      const totalJudged =
+                        lastRunStats.sicks +
+                        lastRunStats.goods +
+                        lastRunStats.bads +
+                        lastRunStats.shits +
+                        lastRunStats.misses;
+                      const acc =
+                        totalJudged > 0 ? calculateAccuracy(lastRunStats) : 0;
+                      const grade = calculateGrade(acc, lastRunStats.misses);
+                      return totalJudged === 0
+                        ? '?'
+                        : `${acc.toFixed(2)}% (${grade})`;
+                    })()}
                   </div>
                 </div>
               </div>

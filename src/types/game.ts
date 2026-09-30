@@ -13,10 +13,11 @@ export type SongId =
 
 export type Direction = 0 | 1 | 2 | 3; // 0 = Left, 1 = Down, 2 = Up, 3 = Right
 
-export type CharacterPose = 'idle' | 'left' | 'down' | 'up' | 'right' | 'miss' | 'laugh';
+export type CharacterPose = 'idle' | 'left' | 'down' | 'up' | 'right' | 'miss' | 'laugh' | 'gotcha';
 
 export type OpponentCharacterId =
   | 'sonic-exe'
+  | 'sonicexefake'
   | 'ycr-exe'
   | 'pixel-exe'
   | 'xenophanes'
@@ -59,7 +60,16 @@ export interface SongEvent {
     | 'screamer_text'
     | 'majin_countdown'
     | 'flip_lanes'
-    | 'red_flash';
+    | 'red_flash'
+    | 'strumline_spin'
+    | 'focus_camera'
+    | 'zoom_camera'
+    | 'noteskin_swap'
+    | 'camera_bop'
+    | 'lyrics'
+    | 'too_slow_flash'
+    | 'play_anim'
+    | 'sonicspook';
   value: string;
   triggered?: boolean;
 }
@@ -100,6 +110,7 @@ export interface GameplaySettings {
   downscroll: boolean;
   scrollSpeedMultiplier: number;
   ghostTapping: boolean;
+  practiceMode: boolean;
   botplay: boolean;
   crtFilter: boolean;
   hitSoundVolume: number;

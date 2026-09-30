@@ -5,6 +5,11 @@ import {
   SongId,
   SongMetadata,
 } from '../types/game';
+import { buildExactEndlessChart } from './endlessChartData';
+import { buildTooSlowNormalChart } from './tooSlowNormalData';
+import { buildTooSlowEncoreChart } from './tooSlowEncoreData';
+import { buildYcrNormalChart } from './ycrNormalData';
+import { buildYcrEncoreChart } from './ycrEncoreData';
 
 export const STAGE_IMAGES = {
   cursedGreenHill: '/src/assets/images/stage_green_hill_cursed_1790622310670.jpg',
@@ -17,12 +22,12 @@ export const SONGS: SongMetadata[] = [
   {
     id: 'too-slow',
     title: 'Too Slow',
-    subtitle: 'Hill of the Void · Act I',
+    subtitle: 'Hill of the Void · V-Slice Chart (Wilde / Sandplanet)',
     modVersionOrigin: 'v3.0',
-    composer: 'MarStarBro & Saster',
+    composer: 'MarStarBro',
     bpm: 135,
-    scrollSpeed: 2.9,
-    durationSec: 78,
+    scrollSpeed: 3.2,
+    durationSec: 186,
     difficultyLabel: 'HARD',
     difficultyStars: 4,
     stageImage: STAGE_IMAGES.cursedGreenHill,
@@ -30,43 +35,43 @@ export const SONGS: SongMetadata[] = [
     initialOpponent: 'sonic-exe',
     initialPlayer: 'bf',
     accentColor: '#E11D48',
-    opponentHealthColor: '#1E1B4B',
-    playerHealthColor: '#38BDF8',
+    opponentHealthColor: '#0E639C',
+    playerHealthColor: '#31B0D1',
     description:
-      'Corrupted Green Hill Zone where a disguised hedgehog drops the facade mid-song with a sudden BPM surge and static screamer.',
-    mechanicsSummary: 'Static Notes · Mid-Song BPM Surge · "I AM GOD" Cutscene',
+      'Corrupted Green Hill Zone featuring the 28.4s ominous piano intro, Static Notes, 84.6s laugh zoom, 129.5s "I\'m gonna getcha! I am... GOD." lyrics, and 164.4s SonicSpook.',
+    mechanicsSummary: '0s Synced .OGG Stems · Static Notes · 2:09 Cutscene Lyrics',
   },
   {
     id: 'too-slow-encore',
     title: 'Too Slow Encore',
-    subtitle: 'Blood Moon Remix · Encore Week',
+    subtitle: 'Hill (Erect / Encore) · Fake Sonic → Sonic.EXE',
     modVersionOrigin: 'v4.00000000',
-    composer: 'MarStarBro & Saster (Encore Mix)',
-    bpm: 162,
-    scrollSpeed: 3.3,
-    durationSec: 82,
+    composer: 'MarStarBro + Saster (Chart: Wilde)',
+    bpm: 135,
+    scrollSpeed: 3.4,
+    durationSec: 178,
     difficultyLabel: 'ENCORE',
     difficultyStars: 5,
     stageImage: STAGE_IMAGES.cursedGreenHill,
     stageTheme: 'cursed-green-hill',
-    initialOpponent: 'sonic-exe',
+    initialOpponent: 'sonicexefake',
     initialPlayer: 'bf-encore',
     accentColor: '#F43F5E',
-    opponentHealthColor: '#881337',
-    playerHealthColor: '#06B6D4',
+    opponentHealthColor: '#0E639C',
+    playerHealthColor: '#31B0D1',
     description:
-      'Overclocked v3.0/v4.00000000 Encore arrangement featuring syncopated double-note streams, Encore Boyfriend, and Golden Ring shields.',
-    mechanicsSummary: 'Ring Shield Mechanic · High-Speed Streams · Encore Stage Tint',
+      'Starts against Fake Sonic (sonicexefake.ogg) before transforming into Sonic.EXE at 43.2s, with the 1:33 "I\'m gonna getcha! I am GOD." cutscene and Erect/Encore static streams.',
+    mechanicsSummary: 'sonicexefake.ogg Exclusive · 43.2s Boss Transformation · 1:33 Lyrics',
   },
   {
     id: 'you-cant-run',
     title: "You Can't Run",
-    subtitle: 'Crimson Labyrinth · Act II',
+    subtitle: 'Crimson Labyrinth · V-Slice Chart (Razencro)',
     modVersionOrigin: 'v3.0',
-    composer: 'MarStarBro & KGBepis',
-    bpm: 142,
-    scrollSpeed: 3.1,
-    durationSec: 84,
+    composer: 'MarStarBro (Chart: Razencro)',
+    bpm: 140,
+    scrollSpeed: 3.5,
+    durationSec: 156,
     difficultyLabel: 'HARD',
     difficultyStars: 4,
     stageImage: STAGE_IMAGES.ycrCrimson,
@@ -74,21 +79,21 @@ export const SONGS: SongMetadata[] = [
     initialOpponent: 'ycr-exe',
     initialPlayer: 'bf',
     accentColor: '#DC2626',
-    opponentHealthColor: '#991B1B',
-    playerHealthColor: '#38BDF8',
+    opponentHealthColor: '#6F0E79',
+    playerHealthColor: '#31B0D1',
     description:
-      'Sonic.exe grows more unhinged in the burning red crystal forest before warping both fighters into a 16-bit Sega Genesis Green Hill pixel stage.',
-    mechanicsSummary: '16-Bit Sega Genesis Stage Swap · Static Notes · Pixel Sprites',
+      'Sonic.exe Phase 2 in the Crimson Labyrinth featuring the 13.7s laugh zoom, Static & Phantom notes, 56.5s–84.0s 16-bit Sega Genesis Green Hill pixel stage swap with Strumline Spins, and 2:31 "JUST DIE!!" finale.',
+    mechanicsSummary: '0s Synced .OGG Stems · 56.5s 16-Bit Genesis Swap · Static & Phantom Notes',
   },
   {
     id: 'you-cant-run-encore',
     title: "You Can't Run Encore",
-    subtitle: 'Crystallized Chaos · Encore Week',
+    subtitle: 'Crimson Labyrinth (Erect / Encore) · V-Slice Chart',
     modVersionOrigin: 'v4.00000000',
-    composer: 'SimplyCrispy & MarStarBro',
-    bpm: 168,
-    scrollSpeed: 3.45,
-    durationSec: 86,
+    composer: 'MarStarBro + Saster (Chart: Razencro)',
+    bpm: 140,
+    scrollSpeed: 3.5,
+    durationSec: 208,
     difficultyLabel: 'ENCORE',
     difficultyStars: 5,
     stageImage: STAGE_IMAGES.ycrCrimson,
@@ -96,11 +101,11 @@ export const SONGS: SongMetadata[] = [
     initialOpponent: 'ycr-exe',
     initialPlayer: 'bf-encore',
     accentColor: '#EF4444',
-    opponentHealthColor: '#DC2626',
-    playerHealthColor: '#22D3EE',
+    opponentHealthColor: '#6F0E79',
+    playerHealthColor: '#31B0D1',
     description:
-      'Relentless v4.00000000 Encore rechart with rapid stair patterns, extended 16-bit Genesis chiptune breakdown, and Ring survival.',
-    mechanicsSummary: 'Extended 16-Bit Pixel Breakdown · Ring Mechanic · 168 BPM',
+      'Official Erect/Encore chart by MarStarBro & Saster featuring the 56.5s–84.0s 16-bit Genesis swap, 2:21 "THE GAZE OF A GOD IS LEFT BY NONE" spoken verse, and 3:16 "JUST... DIE!!" climax.',
+    mechanicsSummary: '0s Synced .OGG Stems · 2:21 Gaze of a God Lyrics · Static Barrage',
   },
   {
     id: 'triple-trouble',
@@ -121,18 +126,18 @@ export const SONGS: SongMetadata[] = [
     opponentHealthColor: '#6B21A8',
     playerHealthColor: '#38BDF8',
     description:
-      'The legendary multi-phase boss marathon against Soul Tails, Crystallized Xenophanes, Soul Knuckles (with lane perspective flip!), and Soul Eggman.',
-    mechanicsSummary: '4 Boss Swaps · Perspective Lane Flip · Golden Rings & Phantom Notes',
+      'The legendary multi-phase boss marathon against Tails.EXE (tails.json), Crystallized Xenophanes, Knuckles.EXE (knux.json with perspective lane flip!), and Eggman.EXE (eggy.json jijijija laugh) with Ring Notes (ringnote.json).',
+    mechanicsSummary: 'tails.json · knux.json · eggy.json · ringnote.json (BloodSplash)',
   },
   {
     id: 'endless',
     title: 'Endless',
-    subtitle: 'Sound Test · FM 46 PCM 12',
+    subtitle: 'Majin Forest · V-Slice Official Chart',
     modVersionOrigin: 'v3.0',
-    composer: 'MarStarBro',
+    composer: 'MarStarBro (Chart: Echolocated)',
     bpm: 155,
-    scrollSpeed: 3.05,
-    durationSec: 80,
+    scrollSpeed: 3.0,
+    durationSec: 162,
     difficultyLabel: 'INFINITE',
     difficultyStars: 4,
     stageImage: STAGE_IMAGES.endlessMajin,
@@ -143,18 +148,18 @@ export const SONGS: SongMetadata[] = [
     opponentHealthColor: '#1D4ED8',
     playerHealthColor: '#38BDF8',
     description:
-      'Fun is Infinite with Sega Enterprises! Face off against Majin Sonic in the cobalt blue forest featuring the iconic "THREE, TWO, ONE, GO!" drop.',
-    mechanicsSummary: '"THREE, TWO, ONE, GO!" Drop · Blue HUD Theme · Groovy Syncopation',
+      'Fun is Infinite with Sega Enterprises! Face off against Majin Sonic (SonicFunAssets) in Majin Forest with synchronized multi-stem .ogg playback, Strumline Spins, and the 85.9s Majin NoteSwap & Zoom drop.',
+    mechanicsSummary: 'Synchronized 0s .OGG Stems · Strumline Spins · Majin NoteSwap (1:25)',
   },
   {
     id: 'endless-og',
     title: 'Endless OG',
-    subtitle: 'Legacy v1.5 / v4.00000000 Sound Test',
+    subtitle: 'Majin Forest · Variation 2 (MajinOG)',
     modVersionOrigin: 'v4.00000000',
-    composer: 'MarStarBro (Original Mix)',
+    composer: 'MarStarBro (Original / Erect Mix)',
     bpm: 155,
-    scrollSpeed: 2.95,
-    durationSec: 78,
+    scrollSpeed: 3.0,
+    durationSec: 162,
     difficultyLabel: 'INFINITE',
     difficultyStars: 4,
     stageImage: STAGE_IMAGES.endlessMajin,
@@ -165,8 +170,8 @@ export const SONGS: SongMetadata[] = [
     opponentHealthColor: '#1E40AF',
     playerHealthColor: '#60A5FA',
     description:
-      'The classic original chart and vintage high-contrast Majin Sonic sprite shading preserved in the v4.00000000 Sound Test vault.',
-    mechanicsSummary: 'Classic v1.5 Charting · Vintage Majin Sprite · Sega CD FM Lead',
+      'Features Majin Sonic Variation 2 (MajinOG 1.4x scale) and Boyfriend (Endless) on the Majin Forest stage with synchronized 0s .ogg stem support.',
+    mechanicsSummary: 'MajinOG (1.4x Scale) · Synchronized 0s .OGG Stems · Strumline Spins',
   },
 ];
 
@@ -286,6 +291,22 @@ export function generateSongChartAndEvents(songId: SongId): {
   notes: ChartNote[];
   events: SongEvent[];
 } {
+  if (songId === 'too-slow') {
+    return buildTooSlowNormalChart();
+  }
+  if (songId === 'too-slow-encore') {
+    return buildTooSlowEncoreChart();
+  }
+  if (songId === 'you-cant-run') {
+    return buildYcrNormalChart();
+  }
+  if (songId === 'you-cant-run-encore') {
+    return buildYcrEncoreChart();
+  }
+  if (songId === 'endless' || songId === 'endless-og') {
+    return buildExactEndlessChart(songId);
+  }
+
   const song = SONGS.find((s) => s.id === songId) || SONGS[0];
   const beatMs = 60000 / song.bpm;
   const measureMs = beatMs * 4;
@@ -418,7 +439,7 @@ export function generateSongChartAndEvents(songId: SongId): {
       type: 'flip_lanes',
       value: 'false',
     });
-    // 5. Soul Eggman
+    // 5. Soul Eggman (eggy.json jijijija -> Eggman_Laugh at 36fps)
     events.push({
       timeMs: Math.round(measureMs * 30),
       type: 'character_swap',
@@ -426,8 +447,13 @@ export function generateSongChartAndEvents(songId: SongId): {
     });
     events.push({
       timeMs: Math.round(measureMs * 30),
+      type: 'play_anim',
+      value: 'jijijija',
+    });
+    events.push({
+      timeMs: Math.round(measureMs * 30),
       type: 'screamer_text',
-      value: 'SOUL EGGMAN LAUGHS',
+      value: 'EGGMAN.EXE · JIJIJIJA!',
     });
     // 6. Final Xenophanes Climax
     events.push({
