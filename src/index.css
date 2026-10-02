@@ -1,5 +1,21 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'VCR OSD Mono';
+  src: url('/fonts/vcr.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
+
+@font-face {
+  font-family: 'Press Start 2P';
+  src: url('/fonts/PressStart2P.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
+
 @layer base {
   :root {
     --font-display: 'Syne', sans-serif;

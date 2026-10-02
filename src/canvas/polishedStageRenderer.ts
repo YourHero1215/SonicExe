@@ -3,14 +3,8 @@ import { SongId } from '../types/game';
 interface CachedPolishedStage {
   skyNormal: HTMLCanvasElement;
   skyEncore: HTMLCanvasElement;
-  treesMidBack: HTMLCanvasElement;
-  treesMid: HTMLCanvasElement;
-  treesOuterMid: HTMLCanvasElement;
-  treesLeftRight: HTMLCanvasElement;
-  outerBushes: HTMLCanvasElement;
-  mainGrassAndCorpses: HTMLCanvasElement;
-  tailsPikeAndFG: HTMLCanvasElement;
-  treesFGBlurred: HTMLCanvasElement;
+  midTreesCombined: HTMLCanvasElement;
+  mainGrassAndProps: HTMLCanvasElement;
 }
 
 interface CachedYcrStage {
@@ -36,11 +30,29 @@ let cachedYcr: CachedYcrStage | null = null;
 let cachedMajin: CachedMajinStage | null = null;
 let cachedTT: CachedTripleTroubleStage | null = null;
 
-function createOffscreen(w = 1920, h = 1080): HTMLCanvasElement {
+const ycrStageImageCache: Record<string, HTMLImageElement> = {};
+function getYcrStageImage(src: string): HTMLImageElement | null {
+  if (typeof Image === 'undefined') return null;
+  if (!ycrStageImageCache[src]) {
+    const img = new Image();
+    img.src = src;
+    ycrStageImageCache[src] = img;
+  }
+  const cached = ycrStageImageCache[src];
+  return cached.complete && cached.naturalWidth > 0 ? cached : null;
+}
+
+function createOffscreen(w = 1280, h = 720): HTMLCanvasElement {
   const c = document.createElement('canvas');
   c.width = w;
   c.height = h;
   return c;
+}
+
+function getStageCtx(c: HTMLCanvasElement): CanvasRenderingContext2D {
+  const ctx = c.getContext('2d')!;
+  ctx.setTransform(c.width / 1920, 0, 0, c.height / 1080, 0, 0);
+  return ctx;
 }
 
 // Helper to draw a high-detail curved palm tree matching TreesMid.png / TreesOuterMid1.png / TreesOuterMid2.png
@@ -255,7 +267,7 @@ function ensurePolishedStageBuilt(): CachedPolishedStage {
   // 1. Sky Normal (1000029768.png: Deep crimson top -> orange -> glowing golden-yellow center haze + jagged mountain horizon)
   const skyNormal = createOffscreen();
   {
-    const ctx = skyNormal.getContext('2d')!;
+    const ctx = getStageCtx(skyNormal);
     const lin = ctx.createLinearGradient(0, 0, 0, 1080);
     lin.addColorStop(0, '#780404');
     lin.addColorStop(0.22, '#991109');
@@ -290,7 +302,7 @@ function ensurePolishedStageBuilt(): CachedPolishedStage {
   // 2. Sky Encore (1000029766.png: Deep magenta-crimson top -> blood red -> warm orange-peach center haze)
   const skyEncore = createOffscreen();
   {
-    const ctx = skyEncore.getContext('2d')!;
+    const ctx = getStageCtx(skyEncore);
     const lin = ctx.createLinearGradient(0, 0, 0, 1080);
     lin.addColorStop(0, '#68022E');
     lin.addColorStop(0.24, '#9E0A2F');
@@ -322,10 +334,10 @@ function ensurePolishedStageBuilt(): CachedPolishedStage {
     ctx.fill();
   }
 
-  // 3. TreesMidBack.png (Silhouette palm cluster in background)
-  const treesMidBack = createOffscreen();
+  // 3–6. Combined Mid-Background Trees Layer (TreesMidBack + TreesMid + TreesOuterMid + TreesLeftRight)
+  const midTreesCombined = createOffscreen();
   {
-    const ctx = treesMidBack.getContext('2d')!;
+    const ctx = getStageCtx(midTreesCombined);
     const backSpecs = [
       { bx: 295, by: 925, tx: 290, ty: 270, cx: 350, cy: 580, s: 1.05, c: '#703D08' },
       { bx: 555, by: 910, tx: 575, ty: 105, cx: 615, cy: 500, s: 1.25, c: '#743F09' },
@@ -339,12 +351,7 @@ function ensurePolishedStageBuilt(): CachedPolishedStage {
     for (const sp of backSpecs) {
       drawCartoonPalmTree(ctx, sp.bx, sp.by, sp.tx, sp.ty, sp.cx, sp.cy, sp.s, sp.c);
     }
-  }
 
-  // 4. TreesMid.png (4 detailed center palm trees)
-  const treesMid = createOffscreen();
-  {
-    const ctx = treesMid.getContext('2d')!;
     const midSpecs = [
       { bx: 775, by: 840, tx: 750, ty: 345, cx: 830, cy: 610, s: 0.95 },
       { bx: 955, by: 800, tx: 965, ty: 270, cx: 905, cy: 540, s: 0.95 },
@@ -354,12 +361,7 @@ function ensurePolishedStageBuilt(): CachedPolishedStage {
     for (const sp of midSpecs) {
       drawCartoonPalmTree(ctx, sp.bx, sp.by, sp.tx, sp.ty, sp.cx, sp.cy, sp.s);
     }
-  }
 
-  // 5. TreesOuterMid1.png + TreesOuterMid2.png (Tall flanking palm trees)
-  const treesOuterMid = createOffscreen();
-  {
-    const ctx = treesOuterMid.getContext('2d')!;
     const outerSpecs = [
       { bx: 170, by: 925, tx: 185, ty: 175, cx: 95, cy: 550, s: 1.25 },
       { bx: 425, by: 795, tx: 425, ty: 265, cx: 365, cy: 530, s: 0.95 },
@@ -375,12 +377,7 @@ function ensurePolishedStageBuilt(): CachedPolishedStage {
     for (const sp of outerSpecs) {
       drawCartoonPalmTree(ctx, sp.bx, sp.by, sp.tx, sp.ty, sp.cx, sp.cy, sp.s);
     }
-  }
 
-  // 6. TreesLeft.png + TreesRight.png (Striped conifer trees on left & right)
-  const treesLeftRight = createOffscreen();
-  {
-    const ctx = treesLeftRight.getContext('2d')!;
     drawStripedConiferTree(ctx, 310, 650, 155, 340, 45);
     drawStripedConiferTree(ctx, 105, 570, 75, 330, 35);
     drawStripedConiferTree(ctx, 470, 600, 68, 350, 45);
@@ -389,13 +386,10 @@ function ensurePolishedStageBuilt(): CachedPolishedStage {
     drawStripedConiferTree(ctx, 1735, 625, 82, 350, -45);
   }
 
-  // 7. OuterBush.png + OuterBushUp.png (kept empty per user request so side bushes never block characters)
-  const outerBushes = createOffscreen();
-
-  // 8. Grass.png + DeadEgg.png + DeadKnux.png + DeadTailz2.png + DeadTailz3.png (High-Detail Version)
-  const mainGrassAndCorpses = createOffscreen();
+  // 8–9. Combined Grass + Corpses + Tails Pike Layer
+  const mainGrassAndProps = createOffscreen();
   {
-    const ctx = mainGrassAndCorpses.getContext('2d')!;
+    const ctx = getStageCtx(mainGrassAndProps);
 
     // Base Grass.png floor (y = 580..1080) with rich multi-stop depth gradient
     ctx.beginPath();
@@ -600,12 +594,7 @@ function ensurePolishedStageBuilt(): CachedPolishedStage {
     };
     drawTornTail(225, 650, 0.95);
     drawTornTail(415, 945, 0.95);
-  }
 
-  // 9. TAIL.png (Tails Head on Wooden Pike) + DeadTailz1.png
-  const tailsPikeAndFG = createOffscreen();
-  {
-    const ctx = tailsPikeAndFG.getContext('2d')!;
     ctx.save();
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
@@ -752,19 +741,11 @@ function ensurePolishedStageBuilt(): CachedPolishedStage {
     ctx.restore();
   }
 
-  const treesFGBlurred = createOffscreen();
-
   cachedStage = {
     skyNormal,
     skyEncore,
-    treesMidBack,
-    treesMid,
-    treesOuterMid,
-    treesLeftRight,
-    outerBushes,
-    mainGrassAndCorpses,
-    tailsPikeAndFG,
-    treesFGBlurred,
+    midTreesCombined,
+    mainGrassAndProps,
   };
   return cachedStage;
 }
@@ -850,135 +831,80 @@ function drawFacetedCrystalCluster(
 function ensureYcrStageBuilt(): CachedYcrStage {
   if (cachedYcr) return cachedYcr;
 
-  // 1. Sky & Jagged Crimson Labyrinth Mountains
+  // 1. Dark Twilight Sky & Back Bush Silhouette (matches stages/hillAct2/sky.png + BackBush.png)
   const skyAndMountains = createOffscreen();
   {
-    const ctx = skyAndMountains.getContext('2d')!;
+    const ctx = getStageCtx(skyAndMountains);
     const skyGrad = ctx.createLinearGradient(0, 0, 0, 1080);
-    skyGrad.addColorStop(0, '#1A0208');
-    skyGrad.addColorStop(0.35, '#4A0615');
-    skyGrad.addColorStop(0.7, '#8F0D22');
-    skyGrad.addColorStop(1, '#2B030A');
+    skyGrad.addColorStop(0, '#121620');
+    skyGrad.addColorStop(0.45, '#1B141D');
+    skyGrad.addColorStop(0.8, '#231926');
+    skyGrad.addColorStop(1, '#0F0F12');
     ctx.fillStyle = skyGrad;
     ctx.fillRect(0, 0, 1920, 1080);
 
-    // Blood moon / crimson vortex glow in center-top sky
-    const moonGlow = ctx.createRadialGradient(960, 320, 30, 960, 320, 580);
-    moonGlow.addColorStop(0, 'rgba(254, 202, 202, 0.85)');
-    moonGlow.addColorStop(0.25, 'rgba(239, 68, 68, 0.65)');
-    moonGlow.addColorStop(0.65, 'rgba(153, 27, 27, 0.25)');
+    // Subtle twilight glow in center sky
+    const moonGlow = ctx.createRadialGradient(960, 340, 30, 960, 340, 520);
+    moonGlow.addColorStop(0, 'rgba(91, 75, 101, 0.48)');
+    moonGlow.addColorStop(0.55, 'rgba(66, 52, 83, 0.24)');
     moonGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
     ctx.fillStyle = moonGlow;
     ctx.fillRect(0, 0, 1920, 1080);
 
-    // Jagged Crimson Mountain Range
-    ctx.fillStyle = '#2A040D';
-    ctx.strokeStyle = '#7F1D1D';
-    ctx.lineWidth = 3;
+    // BackBush silhouette mound
+    ctx.fillStyle = '#141414';
     ctx.beginPath();
-    ctx.moveTo(0, 720);
-    const peaks = [
-      [140, 420], [290, 560], [460, 340], [640, 520], [820, 390],
-      [960, 490], [1120, 360], [1310, 530], [1490, 330], [1680, 510],
-      [1820, 390], [1920, 490],
-    ];
-    for (const [px, py] of peaks) ctx.lineTo(px, py);
+    ctx.moveTo(0, 1080);
+    ctx.lineTo(0, 560);
+    ctx.quadraticCurveTo(960, 440, 1920, 560);
     ctx.lineTo(1920, 1080);
-    ctx.lineTo(0, 1080);
     ctx.closePath();
     ctx.fill();
-    ctx.stroke();
   }
 
-  // 2. Back Crystals & Dead Twisted Crimson Trees (scroll 0.5)
+  // 2. Dark Silhouette Forest Trees (matches stages/hillAct2/trees.png, scroll 0.5)
   const backCrystalsAndTrees = createOffscreen();
   {
-    const ctx = backCrystalsAndTrees.getContext('2d')!;
-    const crystalSpecs = [
-      { x: 210, y: 690, s: 1.15, t: -0.15 },
-      { x: 520, y: 670, s: 0.92, t: 0.08 },
-      { x: 810, y: 660, s: 0.85, t: -0.06 },
-      { x: 1140, y: 665, s: 0.88, t: 0.07 },
-      { x: 1420, y: 675, s: 0.96, t: -0.1 },
-      { x: 1710, y: 690, s: 1.18, t: 0.16 },
-    ];
-    for (const cs of crystalSpecs) {
-      drawFacetedCrystalCluster(
-        ctx,
-        cs.x,
-        cs.y,
-        cs.s,
-        '#DC2626',
-        '#F87171',
-        '#7F1D1D',
-        cs.t
-      );
-    }
-
-    // Gnarled dead crimson-lit trees flanking the stage
-    drawCartoonPalmTree(ctx, 310, 760, 290, 190, 220, 460, 1.1, '#3B0610');
-    drawCartoonPalmTree(ctx, 1610, 760, 1630, 190, 1700, 460, 1.1, '#3B0610');
+    const ctx = getStageCtx(backCrystalsAndTrees);
+    drawCartoonPalmTree(ctx, 360, 760, 380, 140, 290, 430, 1.18, '#111111');
+    drawCartoonPalmTree(ctx, 690, 720, 660, 160, 620, 410, 1.02, '#0A0A0A');
+    drawCartoonPalmTree(ctx, 1230, 720, 1260, 160, 1300, 410, 1.02, '#0A0A0A');
+    drawCartoonPalmTree(ctx, 1560, 760, 1540, 140, 1630, 430, 1.18, '#111111');
   }
 
-  // 3. Cracked Crimson Labyrinth Ground & Checkered Cliff Overhang
+  // 3. TopBushes Ground + Framing TreesFront + TopOverlay (matches stages/hillAct2/TopBushes.png + TreesFront.png + TopOverlay.png)
   const groundAndFrontCrystals = createOffscreen();
   {
-    const ctx = groundAndFrontCrystals.getContext('2d')!;
+    const ctx = getStageCtx(groundAndFrontCrystals);
 
-    // Main ground platform (y = 635..1080)
-    const floorGrad = ctx.createLinearGradient(0, 630, 0, 1080);
-    floorGrad.addColorStop(0, '#450A14');
-    floorGrad.addColorStop(0.35, '#2D060D');
-    floorGrad.addColorStop(1, '#140205');
+    // Main dark charcoal grass stage floor
+    const floorGrad = ctx.createLinearGradient(0, 580, 0, 1080);
+    floorGrad.addColorStop(0, '#1E1E1E');
+    floorGrad.addColorStop(0.55, '#171717');
+    floorGrad.addColorStop(1, '#101010');
     ctx.fillStyle = floorGrad;
     ctx.beginPath();
     ctx.moveTo(0, 1080);
-    ctx.lineTo(0, 645);
-    for (let x = 0; x <= 1920; x += 60) {
-      ctx.lineTo(x + 30, 632 + Math.sin(x * 0.03) * 10);
-      ctx.lineTo(x + 60, 645);
-    }
+    ctx.lineTo(0, 610);
+    ctx.quadraticCurveTo(960, 565, 1920, 610);
     ctx.lineTo(1920, 1080);
     ctx.closePath();
     ctx.fill();
 
-    // Glowing crimson lava/energy fissures across the stage floor
-    ctx.strokeStyle = '#EF4444';
-    ctx.lineWidth = 3.5;
-    const fissures = [
-      [[280, 720], [480, 765], [640, 740], [820, 790]],
-      [[1640, 725], [1420, 770], [1220, 745], [1040, 795]],
-      [[620, 880], [890, 845], [1150, 895], [1360, 860]],
-    ];
-    for (const path of fissures) {
-      ctx.beginPath();
-      ctx.moveTo(path[0][0], path[0][1]);
-      for (let i = 1; i < path.length; i++) {
-        ctx.lineTo(path[i][0], path[i][1]);
-      }
-      ctx.stroke();
-    }
+    // Left & Right framing tree trunks (TreesFront)
+    ctx.fillStyle = '#151515';
+    ctx.fillRect(0, 0, 210, 1080);
+    ctx.fillRect(1710, 0, 210, 1080);
 
-    // Center stage spotlight arena ring
-    const spotGrad = ctx.createRadialGradient(960, 810, 60, 960, 810, 680);
-    spotGrad.addColorStop(0, 'rgba(220, 38, 38, 0.28)');
-    spotGrad.addColorStop(0.65, 'rgba(153, 27, 27, 0.12)');
-    spotGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-    ctx.fillStyle = spotGrad;
+    // Top foliage canopy border (TopOverlay)
+    ctx.fillStyle = '#0A0A0A';
     ctx.beginPath();
-    ctx.ellipse(960, 810, 680, 210, 0, 0, Math.PI * 2);
+    ctx.moveTo(0, 0);
+    ctx.lineTo(1920, 0);
+    ctx.lineTo(1920, 150);
+    ctx.quadraticCurveTo(960, 60, 0, 150);
+    ctx.closePath();
     ctx.fill();
-
-    // Top crimson grass overhang strip
-    ctx.strokeStyle = '#DC2626';
-    ctx.lineWidth = 6;
-    ctx.beginPath();
-    ctx.moveTo(0, 645);
-    for (let x = 0; x <= 1920; x += 60) {
-      ctx.lineTo(x + 30, 632 + Math.sin(x * 0.03) * 10);
-      ctx.lineTo(x + 60, 645);
-    }
-    ctx.stroke();
   }
 
   cachedYcr = {
@@ -995,7 +921,7 @@ function ensureMajinStageBuilt(): CachedMajinStage {
   // 1. Deep Sega CD Cobalt/Indigo Sky & Volumetric Mist
   const skyAndMist = createOffscreen();
   {
-    const ctx = skyAndMist.getContext('2d')!;
+    const ctx = getStageCtx(skyAndMist);
     const skyGrad = ctx.createLinearGradient(0, 0, 0, 1080);
     skyGrad.addColorStop(0, '#040824');
     skyGrad.addColorStop(0.4, '#0B175A');
@@ -1015,7 +941,7 @@ function ensureMajinStageBuilt(): CachedMajinStage {
   // 2. Twisted Cobalt Funhouse Forest Trees (scroll 0.5)
   const backFunhouseTrees = createOffscreen();
   {
-    const ctx = backFunhouseTrees.getContext('2d')!;
+    const ctx = getStageCtx(backFunhouseTrees);
     const treePositions = [140, 360, 590, 820, 1100, 1330, 1560, 1780];
     treePositions.forEach((tx, idx) => {
       ctx.save();
@@ -1043,7 +969,7 @@ function ensureMajinStageBuilt(): CachedMajinStage {
   // 3. Royal-Blue Checkered Majin Forest Clearing Floor
   const groundAndFrontTrees = createOffscreen();
   {
-    const ctx = groundAndFrontTrees.getContext('2d')!;
+    const ctx = getStageCtx(groundAndFrontTrees);
     const floorGrad = ctx.createLinearGradient(0, 635, 0, 1080);
     floorGrad.addColorStop(0, '#1E3A8A');
     floorGrad.addColorStop(0.4, '#172554');
@@ -1096,7 +1022,7 @@ function ensureTripleTroubleStageBuilt(): CachedTripleTroubleStage {
   // 1. Dimensional Purple Void Sky
   const voidSky = createOffscreen();
   {
-    const ctx = voidSky.getContext('2d')!;
+    const ctx = getStageCtx(voidSky);
     const grad = ctx.createLinearGradient(0, 0, 0, 1080);
     grad.addColorStop(0, '#0D031A');
     grad.addColorStop(0.45, '#280947');
@@ -1116,7 +1042,7 @@ function ensureTripleTroubleStageBuilt(): CachedTripleTroubleStage {
   // 2. Towering Xenophanes Crystal Monoliths
   const backXenophanesCrystals = createOffscreen();
   {
-    const ctx = backXenophanesCrystals.getContext('2d')!;
+    const ctx = getStageCtx(backXenophanesCrystals);
     const specs = [
       { x: 180, y: 710, s: 1.35, t: -0.18 },
       { x: 470, y: 680, s: 1.05, t: -0.08 },
@@ -1142,7 +1068,7 @@ function ensureTripleTroubleStageBuilt(): CachedTripleTroubleStage {
   // 3. Fractured Void Stage Platform
   const fracturedGround = createOffscreen();
   {
-    const ctx = fracturedGround.getContext('2d')!;
+    const ctx = getStageCtx(fracturedGround);
     const gGrad = ctx.createLinearGradient(0, 635, 0, 1080);
     gGrad.addColorStop(0, '#3B0764');
     gGrad.addColorStop(0.5, '#1E0538');
@@ -1173,7 +1099,7 @@ function ensureTripleTroubleStageBuilt(): CachedTripleTroubleStage {
 }
 
 /**
- * Draws the combined 18-layer PolishedP1 stage ("Hill of the Void") for Too Slow & Too Slow Encore.
+ * Draws the authentic multi-layer Hill stage (stages/hill/) for Too Slow & Too Slow Encore.
  */
 export function drawPolishedStageBackLayers(
   ctx: CanvasRenderingContext2D,
@@ -1183,70 +1109,101 @@ export function drawPolishedStageBackLayers(
   cameraOffsetX = 0
 ) {
   if (typeof document === 'undefined') return;
+
+  const hillSkyImg = getYcrStageImage('/sprites/hillSkyAndBack.png');
+  const hillTreesImg = getYcrStageImage('/sprites/hillTreesMid.png');
+  const hillGroundImg = getYcrStageImage('/sprites/hillGroundAndProps.png');
+
+  if (hillSkyImg && hillTreesImg && hillGroundImg) {
+    const bleedX = 56;
+    const bleedY = 24;
+    // Relative parallax offsets (since stage context already shifts by -cameraOffsetX * 0.55 with the characters)
+    ctx.drawImage(
+      hillSkyImg,
+      -bleedX + cameraOffsetX * 0.38,
+      -bleedY,
+      w + bleedX * 2,
+      h + bleedY * 2
+    );
+    ctx.drawImage(
+      hillTreesImg,
+      -bleedX + cameraOffsetX * 0.18,
+      -bleedY,
+      w + bleedX * 2,
+      h + bleedY * 2
+    );
+    ctx.drawImage(
+      hillGroundImg,
+      -bleedX,
+      -bleedY,
+      w + bleedX * 2,
+      h + bleedY * 2
+    );
+    return;
+  }
+
   const st = ensurePolishedStageBuilt();
 
   // 1. 8.BGSky (1000029766.png for Too Slow Encore, 1000029768.png for Too Slow)
   const sky = songId === 'too-slow-encore' ? st.skyEncore : st.skyNormal;
   ctx.drawImage(sky, 0, 0, w, h);
 
-  // 2. TreesMidBack (scroll 0.7)
-  ctx.drawImage(st.treesMidBack, -cameraOffsetX * 0.35, 0, w, h);
+  // 2. Combined Mid-Background Trees (scroll 0.45)
+  ctx.drawImage(st.midTreesCombined, cameraOffsetX * 0.18, 0, w, h);
 
-  // 3. TreesMid (scroll 0.7)
-  ctx.drawImage(st.treesMid, -cameraOffsetX * 0.4, 0, w, h);
-
-  // 4. TreesOuterMid1 & TreesOuterMid2 (scroll 0.72)
-  ctx.drawImage(st.treesOuterMid, -cameraOffsetX * 0.45, 0, w, h);
-
-  // 5. TreesLeft & TreesRight (scroll 0.75)
-  ctx.drawImage(st.treesLeftRight, -cameraOffsetX * 0.55, 0, w, h);
-
-  // 6. Grass + DeadEgg + DeadKnux + DeadTailz2/3 (scroll 1.0)
-  ctx.drawImage(st.mainGrassAndCorpses, -cameraOffsetX * 0.85, 0, w, h);
-
-  // 7. TAIL.png (Tails Pike) + DeadTailz1 (scroll 1.0)
-  ctx.drawImage(st.tailsPikeAndFG, -cameraOffsetX * 0.95, 0, w, h);
+  // 3. Grass + Corpses + Tails Pike (scroll 1.0 locked to characters)
+  ctx.drawImage(st.mainGrassAndProps, 0, 0, w, h);
 }
 
 /**
- * High-Definition Multi-Layer Parallax Stage Renderer for You Can't Run & You Can't Run Encore ("Crimson Labyrinth")
+ * Authentic Hill (Act 2) Multi-Layer Parallax Stage Renderer for You Can't Run & You Can't Run Encore
+ * Uses stages/hillAct2/ (sky.png + BackBush.png, trees.png, TopBushes.png + TreesFront.png + TopOverlay.png)
  */
 export function drawYcrCrimsonStage(
   ctx: CanvasRenderingContext2D,
   w: number,
   h: number,
-  timeMs: number,
+  _timeMs: number,
   cameraOffsetX = 0,
-  bgImg?: HTMLImageElement
+  _bgImg?: HTMLImageElement
 ) {
   if (typeof document === 'undefined') return;
+
+  const skyAndBackImg = getYcrStageImage('/sprites/ycrSkyAndBack.png');
+  const treesMidImg = getYcrStageImage('/sprites/ycrTreesMid.png');
+  const groundAndFrontImg = getYcrStageImage('/sprites/ycrGroundAndFront.png');
+
+  if (skyAndBackImg && treesMidImg && groundAndFrontImg) {
+    const bleedX = 56;
+    const bleedY = 24;
+    ctx.drawImage(
+      skyAndBackImg,
+      -bleedX + cameraOffsetX * 0.38,
+      -bleedY,
+      w + bleedX * 2,
+      h + bleedY * 2
+    );
+    ctx.drawImage(
+      treesMidImg,
+      -bleedX + cameraOffsetX * 0.18,
+      -bleedY,
+      w + bleedX * 2,
+      h + bleedY * 2
+    );
+    ctx.drawImage(
+      groundAndFrontImg,
+      -bleedX,
+      -bleedY,
+      w + bleedX * 2,
+      h + bleedY * 2
+    );
+    return;
+  }
+
   const st = ensureYcrStageBuilt();
-
-  ctx.drawImage(st.skyAndMountains, -cameraOffsetX * 0.2, 0, w, h);
-
-  if (bgImg && bgImg.complete && bgImg.naturalWidth > 0) {
-    ctx.save();
-    ctx.globalAlpha = 0.42;
-    ctx.drawImage(bgImg, -cameraOffsetX * 0.3, 0, w, h);
-    ctx.restore();
-  }
-
-  ctx.drawImage(st.backCrystalsAndTrees, -cameraOffsetX * 0.5, 0, w, h);
-  ctx.drawImage(st.groundAndFrontCrystals, -cameraOffsetX * 0.85, 0, w, h);
-
-  // Animated rising crimson embers
-  ctx.save();
-  ctx.fillStyle = '#FCA5A5';
-  for (let i = 0; i < 18; i++) {
-    const px = ((i * 97 + timeMs * 0.03) % w);
-    const py = h - ((i * 67 + timeMs * 0.06) % (h * 0.75));
-    const r = 1.8 + (i % 3) * 1.1;
-    ctx.globalAlpha = 0.35 + (i % 4) * 0.15;
-    ctx.beginPath();
-    ctx.arc(px, py, r, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.restore();
+  ctx.drawImage(st.skyAndMountains, cameraOffsetX * 0.38, 0, w, h);
+  ctx.drawImage(st.backCrystalsAndTrees, cameraOffsetX * 0.18, 0, w, h);
+  ctx.drawImage(st.groundAndFrontCrystals, 0, 0, w, h);
 }
 
 /**
@@ -1276,36 +1233,179 @@ export function drawEndlessMajinStage(
 }
 
 /**
- * High-Definition Multi-Layer Parallax Stage Renderer for Triple Trouble ("Xenophanes & The Three Souls")
+ * Authentic Multi-Layer Parallax Stage Renderer for Triple Trouble (hillAct3: glitchBG & xenoBG)
  */
 export function drawTripleTroubleStage(
   ctx: CanvasRenderingContext2D,
   w: number,
   h: number,
   cameraOffsetX = 0,
-  bgImg?: HTMLImageElement
+  bgImg?: HTMLImageElement,
+  isXenoPhase = false
 ) {
   if (typeof document === 'undefined') return;
-  const st = ensureTripleTroubleStageBuilt();
 
-  ctx.drawImage(st.voidSky, -cameraOffsetX * 0.2, 0, w, h);
+  const p3Trees2 = getYcrStageImage('/sprites/p3_Trees2.png');
+  const p3Trees = getYcrStageImage('/sprites/p3_Trees.png');
+  const p3Grass = getYcrStageImage('/sprites/p3_Grass.png');
+  const ttBackBush = getYcrStageImage('/sprites/ttBackBush.png');
+  const ttTopBushes = getYcrStageImage('/sprites/ttTopBushes.png');
+  const ttTrees = getYcrStageImage('/sprites/ttTrees.png');
 
-  if (bgImg && bgImg.complete && bgImg.naturalWidth > 0) {
-    ctx.save();
-    ctx.globalAlpha = 0.42;
-    ctx.drawImage(bgImg, -cameraOffsetX * 0.35, 0, w, h);
+  ctx.save();
+  if (isXenoPhase) {
+    // 1. xenoBG: Fiery crimson-red & orange horizontal scanline sky (matching 01:48, 03:59, 06:48 in the video!)
+    const skyGrad = ctx.createLinearGradient(0, 0, 0, h * 0.78);
+    skyGrad.addColorStop(0, '#B90504');
+    skyGrad.addColorStop(0.28, '#EC1C0B');
+    skyGrad.addColorStop(0.58, '#FF4D00');
+    skyGrad.addColorStop(0.82, '#FF8800');
+    skyGrad.addColorStop(1, '#1A2408');
+    ctx.fillStyle = skyGrad;
+    ctx.fillRect(-120, -60, w + 240, h + 120);
+
+    // Subtle horizontal scanline bands in the crimson sky
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.14)';
+    for (let sy = 0; sy < h * 0.75; sy += 10) {
+      ctx.fillRect(-120, sy, w + 240, 4);
+    }
+
+    const bleedX = 90;
+    const bleedY = 36;
+    if (p3Trees2) {
+      ctx.drawImage(
+        p3Trees2,
+        -bleedX + cameraOffsetX * 0.25,
+        -bleedY,
+        w + bleedX * 2,
+        h + bleedY * 2
+      );
+    }
+    if (p3Trees) {
+      ctx.drawImage(
+        p3Trees,
+        -bleedX + cameraOffsetX * 0.12,
+        -bleedY,
+        w + bleedX * 2,
+        h + bleedY * 2
+      );
+    }
+    if (p3Grass) {
+      ctx.drawImage(
+        p3Grass,
+        -bleedX,
+        -bleedY + 24,
+        w + bleedX * 2,
+        h + bleedY * 2
+      );
+    }
     ctx.restore();
+    return;
   }
 
-  ctx.drawImage(st.backXenophanesCrystals, -cameraOffsetX * 0.5, 0, w, h);
-  ctx.drawImage(st.fracturedGround, -cameraOffsetX * 0.85, 0, w, h);
+  // 2. glitchBG (Tails, Knuckles, Eggman): Dark VHS static brown/black void sky + silhouette forest + grey/brown ground
+  const darkGrad = ctx.createLinearGradient(0, 0, 0, h);
+  darkGrad.addColorStop(0, '#140E0C');
+  darkGrad.addColorStop(0.45, '#1F1612');
+  darkGrad.addColorStop(0.75, '#0F0B0A');
+  darkGrad.addColorStop(1, '#050404');
+  ctx.fillStyle = darkGrad;
+  ctx.fillRect(-120, -60, w + 240, h + 120);
+
+  // Subtle VHS scanline texture
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
+  for (let sy = 0; sy < h; sy += 8) {
+    ctx.fillRect(-120, sy, w + 240, 3);
+  }
+
+  const bleedX = 90;
+  const bleedY = 36;
+  if (ttBackBush) {
+    ctx.drawImage(
+      ttBackBush,
+      -bleedX + cameraOffsetX * 0.3,
+      -bleedY,
+      w + bleedX * 2,
+      h + bleedY * 2
+    );
+  }
+  if (ttTrees || p3Trees) {
+    ctx.drawImage(
+      (ttTrees || p3Trees)!,
+      -bleedX + cameraOffsetX * 0.16,
+      -bleedY,
+      w + bleedX * 2,
+      h + bleedY * 2
+    );
+  }
+  if (ttTopBushes || p3Grass) {
+    ctx.drawImage(
+      (ttTopBushes || p3Grass)!,
+      -bleedX,
+      -bleedY + 18,
+      w + bleedX * 2,
+      h + bleedY * 2
+    );
+  } else {
+    const st = ensureTripleTroubleStageBuilt();
+    ctx.drawImage(st.voidSky, -cameraOffsetX * 0.2, 0, w, h);
+    if (bgImg && bgImg.complete && bgImg.naturalWidth > 0) {
+      ctx.globalAlpha = 0.42;
+      ctx.drawImage(bgImg, -cameraOffsetX * 0.35, 0, w, h);
+      ctx.globalAlpha = 1;
+    }
+    ctx.drawImage(st.backXenophanesCrystals, -cameraOffsetX * 0.5, 0, w, h);
+    ctx.drawImage(st.fracturedGround, -cameraOffsetX * 0.85, 0, w, h);
+  }
+  ctx.restore();
+}
+
+export function drawTripleTroubleForegroundLayer(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  cameraOffsetX = 0
+) {
+  const fg1 = getYcrStageImage('/sprites/ttFGTree1.png');
+  const fg2 = getYcrStageImage('/sprites/ttFGTree2.png');
+  const bleedX = 70;
+  const bleedY = 24;
+  if (fg1) {
+    ctx.drawImage(
+      fg1,
+      -bleedX - cameraOffsetX * 0.2,
+      -bleedY,
+      w + bleedX * 2,
+      h + bleedY * 2
+    );
+  }
+  if (fg2) {
+    ctx.drawImage(
+      fg2,
+      -bleedX - cameraOffsetX * 0.28,
+      -bleedY,
+      w + bleedX * 2,
+      h + bleedY * 2
+    );
+  }
 }
 
 export function drawPolishedStageForegroundLayer(
-  _ctx: CanvasRenderingContext2D,
-  _w: number,
-  _h: number,
-  _cameraOffsetX = 0
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  cameraOffsetX = 0
 ) {
-  // Side foreground bushes/trees removed so characters are never blocked
+  const hillFgImg = getYcrStageImage('/sprites/hillTreesFG.png');
+  if (hillFgImg) {
+    const bleedX = 56;
+    const bleedY = 24;
+    ctx.drawImage(
+      hillFgImg,
+      -bleedX - cameraOffsetX * 0.22,
+      -bleedY,
+      w + bleedX * 2,
+      h + bleedY * 2
+    );
+  }
 }

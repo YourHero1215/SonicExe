@@ -10,6 +10,7 @@ import { buildTooSlowNormalChart } from './tooSlowNormalData';
 import { buildTooSlowEncoreChart } from './tooSlowEncoreData';
 import { buildYcrNormalChart } from './ycrNormalData';
 import { buildYcrEncoreChart } from './ycrEncoreData';
+import { buildTripleTroubleChart } from './tripleTroubleData';
 
 export const STAGE_IMAGES = {
   cursedGreenHill: '/src/assets/images/stage_green_hill_cursed_1790622310670.jpg',
@@ -110,12 +111,12 @@ export const SONGS: SongMetadata[] = [
   {
     id: 'triple-trouble',
     title: 'Triple Trouble',
-    subtitle: 'Xenophanes & The Three Souls · Finale',
+    subtitle: 'Xenophanes & The Three Souls · Full 8:29 Marathon',
     modVersionOrigin: 'v3.0',
-    composer: 'MarStarBro, Punkett & Uphoric',
-    bpm: 154,
-    scrollSpeed: 3.25,
-    durationSec: 112,
+    composer: 'MarStarBro, Juno & Punkett',
+    bpm: 146,
+    scrollSpeed: 2.9,
+    durationSec: 509,
     difficultyLabel: 'NIGHTMARE',
     difficultyStars: 5,
     stageImage: STAGE_IMAGES.tripleTrouble,
@@ -123,11 +124,11 @@ export const SONGS: SongMetadata[] = [
     initialOpponent: 'tails-soul',
     initialPlayer: 'bf',
     accentColor: '#A855F7',
-    opponentHealthColor: '#6B21A8',
-    playerHealthColor: '#38BDF8',
+    opponentHealthColor: '#6E737B',
+    playerHealthColor: '#31B0D1',
     description:
-      'The legendary multi-phase boss marathon against Tails.EXE (tails.json), Crystallized Xenophanes, Knuckles.EXE (knux.json with perspective lane flip!), and Eggman.EXE (eggy.json jijijija laugh) with Ring Notes (ringnote.json).',
-    mechanicsSummary: 'tails.json · knux.json · eggy.json · ringnote.json (BloodSplash)',
+      'Full 8:29 boss marathon against Tails.EXE, Xenophanes (Beast), Knuckles.EXE (with perspective lane flip!), and Eggman.EXE featuring Static & Phantom notes and the 08:28 Sound Test numbers.',
+    mechanicsSummary: 'Perspective Lane Flip · Static & Phantom Notes · 4 Bosses (8:29)',
   },
   {
     id: 'endless',
@@ -303,236 +304,8 @@ export function generateSongChartAndEvents(songId: SongId): {
   if (songId === 'you-cant-run-encore') {
     return buildYcrEncoreChart();
   }
-  if (songId === 'endless' || songId === 'endless-og') {
-    return buildExactEndlessChart(songId);
+  if (songId === 'triple-trouble') {
+    return buildTripleTroubleChart();
   }
-
-  const song = SONGS.find((s) => s.id === songId) || SONGS[0];
-  const beatMs = 60000 / song.bpm;
-  const measureMs = beatMs * 4;
-  const totalMeasures = Math.floor((song.durationSec * 1000) / measureMs);
-  const scale = SCALES[songId];
-
-  const notes: ChartNote[] = [];
-  const events: SongEvent[] = [];
-  let noteCounter = 0;
-
-  const pushMotif = (
-    measureIndex: number,
-    isPlayer: boolean,
-    motif: PatternStep[],
-    pitchShift = 0,
-    mirrorLanes = false
-  ) => {
-    const baseTime = measureIndex * measureMs;
-    for (const step of motif) {
-      const timeMs = Math.round(baseTime + step.beatOffset * beatMs);
-      const lane: Direction = mirrorLanes
-        ? ((3 - step.lane) as Direction)
-        : step.lane;
-      const pitchMidi =
-        scale[Math.min(scale.length - 1, Math.max(0, step.scaleIdx))] +
-        pitchShift +
-        (isPlayer ? 12 : 0);
-      const sustainMs = step.sustainBeats
-        ? Math.round(step.sustainBeats * beatMs)
-        : 0;
-
-      notes.push({
-        id: `${songId}-n-${noteCounter++}`,
-        timeMs,
-        lane,
-        isPlayer,
-        sustainMs,
-        special: step.special || 'normal',
-        pitchMidi,
-      });
-    }
-  };
-
-  // Configure authentic song-specific events (stage transitions, boss swaps, countdowns)
-  if (songId === 'too-slow' || songId === 'too-slow-encore') {
-    events.push({
-      timeMs: Math.round(measureMs * 8),
-      type: 'screamer_text',
-      value: "I'M GONNA GETCHA!",
-    });
-    events.push({
-      timeMs: Math.round(measureMs * 16),
-      type: 'screamer_text',
-      value: 'I AM GOD.',
-    });
-    events.push({
-      timeMs: Math.round(measureMs * 16),
-      type: 'red_flash',
-      value: 'high',
-    });
-  } else if (songId === 'you-cant-run' || songId === 'you-cant-run-encore') {
-    // Switch to 16-bit Sega Genesis Pixel Green Hill Zone mid-song and back!
-    events.push({
-      timeMs: Math.round(measureMs * 10),
-      type: 'stage_swap',
-      value: 'ycr-pixel-genesis',
-    });
-    events.push({
-      timeMs: Math.round(measureMs * 10),
-      type: 'character_swap',
-      value: 'pixel-exe:bf-pixel',
-    });
-    events.push({
-      timeMs: Math.round(measureMs * 10),
-      type: 'screamer_text',
-      value: 'SEGA 16-BIT ZONE ACT 2',
-    });
-    events.push({
-      timeMs: Math.round(measureMs * 20),
-      type: 'stage_swap',
-      value: 'ycr-crimson',
-    });
-    events.push({
-      timeMs: Math.round(measureMs * 20),
-      type: 'character_swap',
-      value: `ycr-exe:${songId === 'you-cant-run-encore' ? 'bf-encore' : 'bf'}`,
-    });
-    events.push({
-      timeMs: Math.round(measureMs * 20),
-      type: 'screamer_text',
-      value: "YOU CAN'T RUN!",
-    });
-  } else if (songId === 'triple-trouble') {
-    // 1. Starts with Soul Tails
-    // 2. Xenophanes Act 1
-    events.push({
-      timeMs: Math.round(measureMs * 8),
-      type: 'character_swap',
-      value: 'xenophanes:bf',
-    });
-    events.push({
-      timeMs: Math.round(measureMs * 8),
-      type: 'screamer_text',
-      value: 'XENOPHANES AWAKENS',
-    });
-    // 3. Soul Knuckles + Perspective Lane Flip!
-    events.push({
-      timeMs: Math.round(measureMs * 16),
-      type: 'character_swap',
-      value: 'knuckles-soul:bf',
-    });
-    events.push({
-      timeMs: Math.round(measureMs * 16),
-      type: 'flip_lanes',
-      value: 'true',
-    });
-    events.push({
-      timeMs: Math.round(measureMs * 16),
-      type: 'screamer_text',
-      value: 'SOUL KNUCKLES · PERSPECTIVE FLIP!',
-    });
-    // 4. Xenophanes Act 2
-    events.push({
-      timeMs: Math.round(measureMs * 24),
-      type: 'character_swap',
-      value: 'xenophanes:bf',
-    });
-    events.push({
-      timeMs: Math.round(measureMs * 24),
-      type: 'flip_lanes',
-      value: 'false',
-    });
-    // 5. Soul Eggman (eggy.json jijijija -> Eggman_Laugh at 36fps)
-    events.push({
-      timeMs: Math.round(measureMs * 30),
-      type: 'character_swap',
-      value: 'eggman-soul:bf',
-    });
-    events.push({
-      timeMs: Math.round(measureMs * 30),
-      type: 'play_anim',
-      value: 'jijijija',
-    });
-    events.push({
-      timeMs: Math.round(measureMs * 30),
-      type: 'screamer_text',
-      value: 'EGGMAN.EXE · JIJIJIJA!',
-    });
-    // 6. Final Xenophanes Climax
-    events.push({
-      timeMs: Math.round(measureMs * 36),
-      type: 'character_swap',
-      value: 'xenophanes:bf',
-    });
-    events.push({
-      timeMs: Math.round(measureMs * 36),
-      type: 'red_flash',
-      value: 'high',
-    });
-    events.push({
-      timeMs: Math.round(measureMs * 36),
-      type: 'screamer_text',
-      value: 'FINAL ACT: TRIPLE TROUBLE',
-    });
-  } else if (songId === 'endless' || songId === 'endless-og') {
-    // Iconic "THREE! TWO! ONE! GO!" Majin countdown
-    const dropMeasure = 10;
-    events.push({
-      timeMs: Math.round(measureMs * dropMeasure - beatMs * 4),
-      type: 'majin_countdown',
-      value: 'THREE!',
-    });
-    events.push({
-      timeMs: Math.round(measureMs * dropMeasure - beatMs * 3),
-      type: 'majin_countdown',
-      value: 'TWO!',
-    });
-    events.push({
-      timeMs: Math.round(measureMs * dropMeasure - beatMs * 2),
-      type: 'majin_countdown',
-      value: 'ONE!',
-    });
-    events.push({
-      timeMs: Math.round(measureMs * dropMeasure - beatMs * 1),
-      type: 'majin_countdown',
-      value: 'GO!! FUN IS INFINITE!',
-    });
-  }
-
-  // Generate measure-by-measure call-and-response + duet sections
-  for (let m = 1; m < totalMeasures - 1; m++) {
-    const isEncore = songId.includes('encore');
-    let chosenMotif = MOTIFS.tooSlowVerse;
-
-    if (songId === 'too-slow') {
-      chosenMotif = m >= 12 ? MOTIFS.tooSlowFast : MOTIFS.tooSlowVerse;
-    } else if (songId === 'too-slow-encore') {
-      chosenMotif = m % 2 === 0 ? MOTIFS.encoreStream : MOTIFS.tooSlowFast;
-    } else if (songId === 'you-cant-run') {
-      chosenMotif = m >= 10 && m < 20 ? MOTIFS.ycrGenesis : MOTIFS.tooSlowFast;
-    } else if (songId === 'you-cant-run-encore') {
-      chosenMotif =
-        m >= 10 && m < 20 ? MOTIFS.ycrGenesis : MOTIFS.encoreStream;
-    } else if (songId === 'triple-trouble') {
-      chosenMotif =
-        (m >= 8 && m < 16) || (m >= 24 && m < 30) || m >= 36
-          ? MOTIFS.ttXeno
-          : MOTIFS.ttSouls;
-    } else if (songId === 'endless' || songId === 'endless-og') {
-      chosenMotif = m >= 10 ? MOTIFS.endlessDrop : MOTIFS.endlessGroove;
-    }
-
-    const pitchShift = (m % 4 === 2 ? 2 : m % 4 === 3 ? -2 : 0) + (isEncore ? 2 : 0);
-    const mirror = m % 3 === 0;
-
-    // Odd measures: Opponent leads; Even measures: Player answers; Every 8th measure: Duet climax!
-    if (m % 8 === 7 || m % 8 === 0) {
-      pushMotif(m, false, chosenMotif, pitchShift, mirror);
-      pushMotif(m, true, chosenMotif, pitchShift, mirror);
-    } else if (m % 2 === 1) {
-      pushMotif(m, false, chosenMotif, pitchShift, mirror);
-    } else {
-      pushMotif(m, true, chosenMotif, pitchShift, mirror);
-    }
-  }
-
-  notes.sort((a, b) => a.timeMs - b.timeMs);
-  return { notes, events };
+  return buildExactEndlessChart(songId);
 }

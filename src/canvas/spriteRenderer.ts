@@ -28,15 +28,47 @@ const RECEPTOR_PRESSED_FILL: Record<Direction, string> = {
   3: '#8F4D57',
 };
 
-// Preloaded authentic sprite sheets for Encore BF (ENCORE_BF.png), Sonic.exe Laugh (sonicexe_laugh.png),
-// Encore GF (Main2GF.png), and Triple Trouble (Tails.png, KnucklesEXE.png, eggman_soul.png, RingNote.png, BloodSplash.png)
+// Preloaded authentic sprite sheets (lazy-loaded per song to minimize Chromebook GPU VRAM usage)
 const spriteSheetCache: Record<string, HTMLImageElement> = {};
+
+// Character sprite sheets are downscaled by 0.5x (<= 4096px max dimension) to cut GPU VRAM by 75% on Chromebooks
+const CHAR_SHEET_SRC_SCALE = 0.5;
+
+function drawCharSubTexture(
+  ctx: CanvasRenderingContext2D,
+  sheet: HTMLImageElement,
+  sx: number,
+  sy: number,
+  sw: number,
+  sh: number,
+  dx: number,
+  dy: number,
+  dw: number,
+  dh: number,
+  srcScale = CHAR_SHEET_SRC_SCALE
+) {
+  ctx.drawImage(
+    sheet,
+    sx * srcScale,
+    sy * srcScale,
+    sw * srcScale,
+    sh * srcScale,
+    dx,
+    dy,
+    dw,
+    dh
+  );
+}
 
 function getSpriteSheet(src: string): HTMLImageElement | null {
   if (typeof Image === 'undefined') return null;
   if (!spriteSheetCache[src]) {
     const img = new Image();
+    img.decoding = 'async';
     img.src = src;
+    if (typeof img.decode === 'function') {
+      img.decode().catch(() => {});
+    }
     spriteSheetCache[src] = img;
   }
   const cached = spriteSheetCache[src];
@@ -51,22 +83,658 @@ function getSonicExeSheet(): HTMLImageElement | null {
   return getSpriteSheet('/sprites/sonicexe.png');
 }
 
+export function preloadSpritesForSong(songId: string) {
+  if (typeof window === 'undefined') return;
+  const needed = new Set<string>([
+    '/sprites/NOTE_assets.png',
+    '/sprites/STATIC_assets.png',
+    '/sprites/PhantomNote.png',
+    '/sprites/RingNote.png',
+    '/sprites/RingCounter.png',
+    '/sprites/arrows-pixels.png',
+    '/sprites/arrowEndsNew.png',
+    '/sprites/icon-bf.png',
+    '/sprites/icon-sonic-exe.png',
+    '/sprites/BloodSplash.png',
+    '/sprites/ui/sick.png',
+    '/sprites/ui/good.png',
+    '/sprites/ui/bad.png',
+    '/sprites/ui/shit.png',
+    '/sprites/ui/num0.png',
+    '/sprites/ui/num1.png',
+    '/sprites/ui/num2.png',
+    '/sprites/ui/num3.png',
+    '/sprites/ui/num4.png',
+    '/sprites/ui/num5.png',
+    '/sprites/ui/num6.png',
+    '/sprites/ui/num7.png',
+    '/sprites/ui/num8.png',
+    '/sprites/ui/num9.png',
+  ]);
+  if (songId === 'too-slow' || songId === 'too-slow-encore') {
+    needed.add('/sprites/hillSkyAndBack.png');
+    needed.add('/sprites/hillTreesMid.png');
+    needed.add('/sprites/hillGroundAndProps.png');
+    needed.add('/sprites/hillTreesFG.png');
+    needed.add('/sprites/sonicexe.png');
+    needed.add('/sprites/SonicJumpscare.png');
+  }
+  if (songId === 'too-slow-encore') {
+    needed.add('/sprites/Sonic_FakerForm.png');
+    needed.add('/sprites/icon-sonicfake.png');
+  }
+  if (songId !== 'endless' && songId !== 'endless-og') {
+    needed.add('/sprites/Main2GF.png');
+  }
+  if (songId.includes('encore')) {
+    needed.add('/sprites/ENCORE_BF.png');
+  } else {
+    needed.add('/sprites/BOYFRIEND.png');
+  }
+  if (songId === 'you-cant-run' || songId === 'you-cant-run-encore') {
+    needed.add('/sprites/ycrSkyAndBack.png');
+    needed.add('/sprites/ycrTreesMid.png');
+    needed.add('/sprites/ycrGroundAndFront.png');
+    needed.add('/sprites/GreenHill.png');
+    needed.add('/sprites/YCR.png');
+    needed.add('/sprites/YCR_Mad.png');
+    needed.add('/sprites/Sonic_EXE_Pixel.png');
+    needed.add('/sprites/BF_Pixel.png');
+    needed.add('/sprites/arrows-pixels.png');
+    needed.add('/sprites/arrowEndsNew.png');
+    needed.add('/sprites/icon-ycr.png');
+    needed.add('/sprites/icon-ycr-pissy.png');
+    needed.add('/sprites/icon-pixelsonic.png');
+    needed.add('/sprites/icon-bfpixelycr.png');
+    needed.add('/sprites/RedVG.png');
+    needed.add('/sprites/SonicJumpscare.png');
+  } else if (songId === 'triple-trouble') {
+    needed.add('/sprites/Tails.png');
+    needed.add('/sprites/KnucklesEXE.png');
+    needed.add('/sprites/eggman_soul.png');
+    needed.add('/sprites/Beast.png');
+    needed.add('/sprites/P3_BF.png');
+    needed.add('/sprites/P3_Tails.png');
+    needed.add('/sprites/P3_Knuckles.png');
+    needed.add('/sprites/P3_Eggman.png');
+    needed.add('/sprites/p3_Grass.png');
+    needed.add('/sprites/p3_Trees.png');
+    needed.add('/sprites/p3_Trees2.png');
+    needed.add('/sprites/ttBackBush.png');
+    needed.add('/sprites/ttTopBushes.png');
+    needed.add('/sprites/ttTrees.png');
+    needed.add('/sprites/ttFGTree1.png');
+    needed.add('/sprites/ttFGTree2.png');
+    needed.add('/sprites/icon-tails.png');
+    needed.add('/sprites/icon-knux.png');
+    needed.add('/sprites/icon-eggman.png');
+    needed.add('/sprites/icon-xenophanes.png');
+  } else if (songId === 'endless') {
+    needed.add('/sprites/SonicFunAssets.png');
+    needed.add('/sprites/Majin_Notes.png');
+    needed.add('/sprites/icon-majin.png');
+  } else if (songId === 'endless-og') {
+    needed.add('/sprites/MajinOG.png');
+    needed.add('/sprites/Majin_Notes.png');
+    needed.add('/sprites/icon-majin-og.png');
+  }
+
+  // Evict unused character/stage sprite sheets from previous songs to prevent GPU texture cache thrashing
+  for (const existingSrc of Object.keys(spriteSheetCache)) {
+    if (!needed.has(existingSrc)) {
+      const oldImg = spriteSheetCache[existingSrc];
+      if (oldImg) {
+        oldImg.src = '';
+      }
+      delete spriteSheetCache[existingSrc];
+    }
+  }
+
+  needed.forEach((src) => getSpriteSheet(src));
+}
+
 if (typeof window !== 'undefined') {
   [
-    '/sprites/ENCORE_BF.png',
-    '/sprites/sonicexe.png',
-    '/sprites/Main2GF.png',
-    '/sprites/Tails.png',
-    '/sprites/KnucklesEXE.png',
-    '/sprites/eggman_soul.png',
+    '/sprites/NOTE_assets.png',
+    '/sprites/STATIC_assets.png',
+    '/sprites/PhantomNote.png',
+    '/sprites/Majin_Notes.png',
     '/sprites/RingNote.png',
+    '/sprites/RingCounter.png',
+    '/sprites/arrows-pixels.png',
+    '/sprites/arrowEndsNew.png',
+    '/sprites/icon-bf.png',
+    '/sprites/icon-sonic-exe.png',
     '/sprites/BloodSplash.png',
-    '/sprites/icon-tails.png',
-    '/sprites/icon-knux.png',
-    '/sprites/icon-eggman.png',
-    '/sprites/icon-xenophanes.png',
+    '/sprites/ui/sick.png',
+    '/sprites/ui/good.png',
+    '/sprites/ui/bad.png',
+    '/sprites/ui/shit.png',
+    '/sprites/ui/num0.png',
+    '/sprites/ui/num1.png',
+    '/sprites/ui/num2.png',
+    '/sprites/ui/num3.png',
+    '/sprites/ui/num4.png',
+    '/sprites/ui/num5.png',
+    '/sprites/ui/num6.png',
+    '/sprites/ui/num7.png',
+    '/sprites/ui/num8.png',
+    '/sprites/ui/num9.png',
   ].forEach((src) => getSpriteSheet(src));
+
+  if (typeof FontFace !== 'undefined' && document?.fonts) {
+    const vcrFont = new FontFace('VCR OSD Mono', 'url(/fonts/vcr.ttf)');
+    vcrFont
+      .load()
+      .then((loaded) => document.fonts.add(loaded))
+      .catch(() => {});
+    const pressStartFont = new FontFace(
+      'Press Start 2P',
+      'url(/fonts/PressStart2P.ttf)'
+    );
+    pressStartFont
+      .load()
+      .then((loaded) => document.fonts.add(loaded))
+      .catch(() => {});
+  }
 }
+
+// Exact Sparrow v2 SubTexture animations & offsets for YCR Sonic.EXE Act 2 (YCR.xml + sonicexep2.json)
+const YCR_NORMAL_ANIMS: Record<
+  'idle' | 'left' | 'down' | 'up' | 'right' | 'laugh' | 'scream',
+  {
+    fps: number;
+    offset: [number, number];
+    frames: readonly { x: number; y: number; w: number; h: number }[];
+  }
+> = {
+  idle: {
+    fps: 26,
+    offset: [-18, 67],
+    frames: [
+      { x: 6895, y: 73, w: 512, h: 738 },
+      { x: 6895, y: 73, w: 512, h: 738 },
+      { x: 7450, y: 73, w: 512, h: 738 },
+      { x: 7450, y: 73, w: 512, h: 738 },
+      { x: 73, y: 854, w: 512, h: 738 },
+      { x: 73, y: 854, w: 512, h: 738 },
+      { x: 628, y: 854, w: 512, h: 738 },
+      { x: 628, y: 854, w: 512, h: 738 },
+      { x: 1183, y: 854, w: 512, h: 738 },
+      { x: 1738, y: 854, w: 512, h: 738 },
+      { x: 2293, y: 854, w: 512, h: 738 },
+      { x: 2848, y: 854, w: 512, h: 738 },
+      { x: 3403, y: 854, w: 512, h: 738 },
+      { x: 3958, y: 854, w: 512, h: 738 },
+      { x: 4513, y: 854, w: 512, h: 738 },
+      { x: 5068, y: 854, w: 512, h: 738 },
+      { x: 5623, y: 854, w: 512, h: 738 },
+    ],
+  },
+  left: {
+    fps: 38,
+    offset: [184, 22],
+    frames: [
+      { x: 6178, y: 854, w: 712, h: 683 },
+      { x: 6178, y: 854, w: 712, h: 683 },
+      { x: 6933, y: 854, w: 712, h: 683 },
+      { x: 6933, y: 854, w: 712, h: 683 },
+      { x: 73, y: 1635, w: 712, h: 683 },
+      { x: 73, y: 1635, w: 712, h: 683 },
+      { x: 828, y: 1635, w: 712, h: 683 },
+      { x: 828, y: 1635, w: 712, h: 683 },
+      { x: 1583, y: 1635, w: 712, h: 683 },
+      { x: 1583, y: 1635, w: 712, h: 683 },
+      { x: 2338, y: 1635, w: 712, h: 683 },
+    ],
+  },
+  down: {
+    fps: 40,
+    offset: [21, -6],
+    frames: [
+      { x: 3133, y: 73, w: 584, h: 639 },
+      { x: 3133, y: 73, w: 584, h: 639 },
+      { x: 3760, y: 73, w: 584, h: 639 },
+      { x: 3760, y: 73, w: 584, h: 639 },
+      { x: 4387, y: 73, w: 584, h: 639 },
+      { x: 4387, y: 73, w: 584, h: 639 },
+      { x: 5014, y: 73, w: 584, h: 639 },
+      { x: 5014, y: 73, w: 584, h: 639 },
+      { x: 5641, y: 73, w: 584, h: 639 },
+      { x: 5641, y: 73, w: 584, h: 639 },
+      { x: 6268, y: 73, w: 584, h: 639 },
+    ],
+  },
+  up: {
+    fps: 42,
+    offset: [-69, 129],
+    frames: [
+      { x: 845, y: 2361, w: 531, h: 770 },
+      { x: 845, y: 2361, w: 531, h: 770 },
+      { x: 1419, y: 2361, w: 531, h: 770 },
+      { x: 1419, y: 2361, w: 531, h: 770 },
+      { x: 1993, y: 2361, w: 531, h: 770 },
+      { x: 1993, y: 2361, w: 531, h: 770 },
+      { x: 2567, y: 2361, w: 531, h: 770 },
+      { x: 2567, y: 2361, w: 531, h: 770 },
+      { x: 3141, y: 2361, w: 531, h: 770 },
+      { x: 3141, y: 2361, w: 531, h: 770 },
+      { x: 3715, y: 2361, w: 531, h: 770 },
+      { x: 2567, y: 2361, w: 531, h: 770 },
+    ],
+  },
+  right: {
+    fps: 35,
+    offset: [-26, -31],
+    frames: [
+      { x: 3093, y: 1635, w: 729, h: 619 },
+      { x: 3093, y: 1635, w: 729, h: 619 },
+      { x: 3865, y: 1635, w: 729, h: 619 },
+      { x: 3865, y: 1635, w: 729, h: 619 },
+      { x: 4637, y: 1635, w: 729, h: 619 },
+      { x: 4637, y: 1635, w: 729, h: 619 },
+      { x: 5409, y: 1635, w: 729, h: 619 },
+      { x: 5409, y: 1635, w: 729, h: 619 },
+      { x: 6181, y: 1635, w: 729, h: 619 },
+      { x: 6181, y: 1635, w: 729, h: 619 },
+      { x: 6953, y: 1635, w: 729, h: 619 },
+      { x: 73, y: 2361, w: 729, h: 619 },
+    ],
+  },
+  laugh: {
+    fps: 24,
+    offset: [18, -51],
+    frames: [
+      { x: 73, y: 73, w: 569, h: 598 },
+      { x: 685, y: 73, w: 569, h: 598 },
+      { x: 1297, y: 73, w: 569, h: 598 },
+      { x: 1909, y: 73, w: 569, h: 598 },
+      { x: 2521, y: 73, w: 569, h: 598 },
+    ],
+  },
+  scream: {
+    fps: 24,
+    offset: [360, 7],
+    frames: [
+      { x: 4289, y: 2361, w: 848, h: 663 },
+      { x: 5180, y: 2361, w: 848, h: 663 },
+      { x: 6071, y: 2361, w: 848, h: 663 },
+      { x: 6962, y: 2361, w: 848, h: 663 },
+      { x: 73, y: 3174, w: 848, h: 663 },
+      { x: 964, y: 3174, w: 848, h: 663 },
+      { x: 1855, y: 3174, w: 848, h: 663 },
+      { x: 2746, y: 3174, w: 848, h: 663 },
+      { x: 3637, y: 3174, w: 848, h: 663 },
+      { x: 4528, y: 3174, w: 848, h: 663 },
+      { x: 5419, y: 3174, w: 848, h: 663 },
+      { x: 6310, y: 3174, w: 848, h: 663 },
+      { x: 7201, y: 3174, w: 848, h: 663 },
+    ],
+  },
+};
+
+// Exact Sparrow v2 SubTexture animations & offsets for YCR Mad Sonic.EXE (YCR_Mad.xml + sonicexep2mad.json)
+const YCR_MAD_ANIMS: Record<
+  'idle' | 'left' | 'down' | 'up' | 'right' | 'laugh' | 'scream' | 'die',
+  {
+    fps: number;
+    offset: [number, number];
+    frames: readonly { x: number; y: number; w: number; h: number }[];
+  }
+> = {
+  idle: {
+    fps: 26,
+    offset: [-18, 67],
+    frames: [
+      { x: 1435, y: 3828, w: 509, h: 726 },
+      { x: 1435, y: 3828, w: 509, h: 726 },
+      { x: 2044, y: 3828, w: 509, h: 726 },
+      { x: 2044, y: 3828, w: 509, h: 726 },
+      { x: 2653, y: 3828, w: 509, h: 726 },
+      { x: 2653, y: 3828, w: 509, h: 726 },
+      { x: 3262, y: 3828, w: 509, h: 726 },
+      { x: 3262, y: 3828, w: 509, h: 726 },
+      { x: 3871, y: 3828, w: 509, h: 726 },
+      { x: 4480, y: 3828, w: 509, h: 726 },
+      { x: 5089, y: 3828, w: 509, h: 726 },
+      { x: 5698, y: 3828, w: 509, h: 726 },
+      { x: 6307, y: 3828, w: 509, h: 726 },
+      { x: 6916, y: 3828, w: 509, h: 726 },
+      { x: 7525, y: 3828, w: 509, h: 726 },
+      { x: 73, y: 4654, w: 509, h: 726 },
+      { x: 682, y: 4654, w: 509, h: 726 },
+    ],
+  },
+  left: {
+    fps: 38,
+    offset: [192, 32],
+    frames: [
+      { x: 1291, y: 4654, w: 725, h: 689 },
+      { x: 1291, y: 4654, w: 725, h: 689 },
+      { x: 2116, y: 4654, w: 725, h: 689 },
+      { x: 2116, y: 4654, w: 725, h: 689 },
+      { x: 2941, y: 4654, w: 725, h: 689 },
+      { x: 2941, y: 4654, w: 725, h: 689 },
+      { x: 3766, y: 4654, w: 725, h: 689 },
+      { x: 3766, y: 4654, w: 725, h: 689 },
+      { x: 4591, y: 4654, w: 725, h: 689 },
+      { x: 4591, y: 4654, w: 725, h: 689 },
+      { x: 5416, y: 4654, w: 725, h: 689 },
+    ],
+  },
+  down: {
+    fps: 40,
+    offset: [-20, -26],
+    frames: [
+      { x: 5344, y: 3077, w: 581, h: 606 },
+      { x: 5344, y: 3077, w: 581, h: 606 },
+      { x: 6025, y: 3077, w: 581, h: 606 },
+      { x: 6025, y: 3077, w: 581, h: 606 },
+      { x: 6706, y: 3077, w: 581, h: 606 },
+      { x: 6706, y: 3077, w: 581, h: 606 },
+      { x: 7387, y: 3077, w: 581, h: 606 },
+      { x: 7387, y: 3077, w: 581, h: 606 },
+      { x: 73, y: 3828, w: 581, h: 606 },
+      { x: 73, y: 3828, w: 581, h: 606 },
+      { x: 754, y: 3828, w: 581, h: 606 },
+    ],
+  },
+  up: {
+    fps: 42,
+    offset: [-61, 238],
+    frames: [
+      { x: 4298, y: 5480, w: 544, h: 867 },
+      { x: 4298, y: 5480, w: 544, h: 867 },
+      { x: 4942, y: 5480, w: 544, h: 867 },
+      { x: 4942, y: 5480, w: 544, h: 867 },
+      { x: 5586, y: 5480, w: 544, h: 867 },
+      { x: 5586, y: 5480, w: 544, h: 867 },
+      { x: 6230, y: 5480, w: 544, h: 867 },
+      { x: 6230, y: 5480, w: 544, h: 867 },
+      { x: 6874, y: 5480, w: 544, h: 867 },
+      { x: 6874, y: 5480, w: 544, h: 867 },
+      { x: 7518, y: 5480, w: 544, h: 867 },
+      { x: 73, y: 6447, w: 544, h: 867 },
+    ],
+  },
+  right: {
+    fps: 35,
+    offset: [-26, 0],
+    frames: [
+      { x: 6241, y: 4654, w: 745, h: 640 },
+      { x: 6241, y: 4654, w: 745, h: 640 },
+      { x: 7086, y: 4654, w: 745, h: 640 },
+      { x: 7086, y: 4654, w: 745, h: 640 },
+      { x: 73, y: 5480, w: 745, h: 640 },
+      { x: 73, y: 5480, w: 745, h: 640 },
+      { x: 918, y: 5480, w: 745, h: 640 },
+      { x: 918, y: 5480, w: 745, h: 640 },
+      { x: 1763, y: 5480, w: 745, h: 640 },
+      { x: 1763, y: 5480, w: 745, h: 640 },
+      { x: 2608, y: 5480, w: 745, h: 640 },
+      { x: 3453, y: 5480, w: 745, h: 640 },
+    ],
+  },
+  laugh: {
+    fps: 24,
+    offset: [18, -35],
+    frames: [
+      { x: 1999, y: 3077, w: 569, h: 598 },
+      { x: 2668, y: 3077, w: 569, h: 598 },
+      { x: 3337, y: 3077, w: 569, h: 598 },
+      { x: 4006, y: 3077, w: 569, h: 598 },
+      { x: 4675, y: 3077, w: 569, h: 598 },
+    ],
+  },
+  scream: {
+    fps: 24,
+    offset: [360, 7],
+    frames: [
+      { x: 717, y: 6447, w: 848, h: 663 },
+      { x: 1665, y: 6447, w: 848, h: 663 },
+      { x: 2613, y: 6447, w: 848, h: 663 },
+      { x: 3561, y: 6447, w: 848, h: 663 },
+      { x: 4509, y: 6447, w: 848, h: 663 },
+      { x: 5457, y: 6447, w: 848, h: 663 },
+      { x: 6405, y: 6447, w: 848, h: 663 },
+      { x: 73, y: 7414, w: 848, h: 663 },
+      { x: 1021, y: 7414, w: 848, h: 663 },
+      { x: 1969, y: 7414, w: 848, h: 663 },
+      { x: 2917, y: 7414, w: 848, h: 663 },
+      { x: 3865, y: 7414, w: 848, h: 663 },
+      { x: 4813, y: 7414, w: 848, h: 663 },
+    ],
+  },
+  die: {
+    fps: 24,
+    offset: [170, 20],
+    frames: [
+      { x: 73, y: 73, w: 863, h: 651 },
+      { x: 1036, y: 73, w: 863, h: 651 },
+      { x: 1999, y: 73, w: 863, h: 651 },
+      { x: 2962, y: 73, w: 863, h: 651 },
+      { x: 3925, y: 73, w: 863, h: 651 },
+      { x: 4888, y: 73, w: 863, h: 651 },
+      { x: 5851, y: 73, w: 863, h: 651 },
+      { x: 6814, y: 73, w: 863, h: 651 },
+      { x: 73, y: 824, w: 863, h: 651 },
+      { x: 1036, y: 824, w: 863, h: 651 },
+      { x: 1999, y: 824, w: 863, h: 651 },
+      { x: 2962, y: 824, w: 863, h: 651 },
+      { x: 3925, y: 824, w: 863, h: 651 },
+      { x: 4888, y: 824, w: 863, h: 651 },
+      { x: 5851, y: 824, w: 863, h: 651 },
+      { x: 6814, y: 824, w: 863, h: 651 },
+      { x: 73, y: 1575, w: 863, h: 651 },
+      { x: 1036, y: 1575, w: 863, h: 651 },
+      { x: 1999, y: 1575, w: 863, h: 651 },
+      { x: 2962, y: 1575, w: 863, h: 651 },
+      { x: 3925, y: 1575, w: 863, h: 651 },
+      { x: 4888, y: 1575, w: 863, h: 651 },
+      { x: 5851, y: 1575, w: 863, h: 651 },
+      { x: 6814, y: 1575, w: 863, h: 651 },
+      { x: 73, y: 2326, w: 863, h: 651 },
+      { x: 1036, y: 2326, w: 863, h: 651 },
+      { x: 1999, y: 2326, w: 863, h: 651 },
+      { x: 2962, y: 2326, w: 863, h: 651 },
+      { x: 3925, y: 2326, w: 863, h: 651 },
+      { x: 4888, y: 2326, w: 863, h: 651 },
+      { x: 5851, y: 2326, w: 863, h: 651 },
+      { x: 6814, y: 2326, w: 863, h: 651 },
+      { x: 73, y: 3077, w: 863, h: 651 },
+      { x: 1036, y: 3077, w: 863, h: 651 },
+    ],
+  },
+};
+
+// Exact 16-bit Pixel Sonic.EXE frames from Sonic_EXE_Pixel.xml (51x51 native)
+const SONIC_PIXEL_ANIMS: Record<
+  'idle' | 'left' | 'down' | 'up' | 'right',
+  readonly { x: number; y: number; w: number; h: number }[]
+> = {
+  idle: [
+    { x: 102, y: 0, w: 51, h: 51 },
+    { x: 0, y: 51, w: 51, h: 51 },
+    { x: 51, y: 51, w: 51, h: 51 },
+    { x: 102, y: 51, w: 51, h: 51 },
+    { x: 0, y: 102, w: 51, h: 51 },
+  ],
+  down: [
+    { x: 0, y: 0, w: 51, h: 51 },
+    { x: 51, y: 0, w: 51, h: 51 },
+  ],
+  up: [
+    { x: 51, y: 204, w: 51, h: 51 },
+    { x: 102, y: 204, w: 51, h: 51 },
+  ],
+  // Since Sonic_EXE_Pixel is flipped horizontally on the left side to face right toward BF:
+  left: [
+    { x: 0, y: 153, w: 51, h: 51 },
+    { x: 51, y: 153, w: 51, h: 51 },
+    { x: 102, y: 153, w: 51, h: 51 },
+    { x: 0, y: 204, w: 51, h: 51 },
+  ],
+  right: [
+    { x: 51, y: 102, w: 51, h: 51 },
+    { x: 102, y: 102, w: 51, h: 51 },
+  ],
+};
+
+// Exact 16-bit Pixel Boyfriend frames from BF.xml (42x46 native, facing left on right side of stage)
+const BF_PIXEL_ANIMS: Record<
+  'idle' | 'left' | 'down' | 'up' | 'right' | 'miss',
+  readonly { x: number; y: number; w: number; h: number }[]
+> = {
+  idle: [
+    { x: 0, y: 0, w: 42, h: 46 },
+    { x: 42, y: 0, w: 42, h: 46 },
+    { x: 84, y: 0, w: 42, h: 46 },
+    { x: 126, y: 0, w: 42, h: 46 },
+    { x: 168, y: 0, w: 42, h: 46 },
+  ],
+  down: [
+    { x: 210, y: 0, w: 42, h: 46 },
+    { x: 0, y: 46, w: 42, h: 46 },
+  ],
+  left: [
+    { x: 42, y: 46, w: 42, h: 46 },
+    { x: 84, y: 46, w: 42, h: 46 },
+  ],
+  up: [
+    { x: 126, y: 46, w: 42, h: 46 },
+    { x: 168, y: 46, w: 42, h: 46 },
+  ],
+  right: [
+    { x: 210, y: 46, w: 42, h: 46 },
+    { x: 0, y: 92, w: 42, h: 46 },
+  ],
+  miss: [
+    { x: 42, y: 92, w: 42, h: 46 },
+    { x: 84, y: 92, w: 42, h: 46 },
+  ],
+};
+
+// Authentic Sparrow v2 SubTexture animations for Fake Sonic (sonicexefake) from Sonic_FakerForm.xml + sonicexefake.json
+const SONIC_FAKER_ANIMS: Record<
+  'idle' | 'left' | 'down' | 'up' | 'right' | 'revealed',
+  {
+    fps: number;
+    offset: [number, number];
+    frames: readonly { x: number; y: number; w: number; h: number; fx: number; fy: number }[];
+  }
+> = {
+  idle: {
+    fps: 24,
+    offset: [140, 100],
+    frames: [
+      { x: 1816, y: 0, w: 438, h: 600, fx: 0, fy: -9 },
+      { x: 1816, y: 0, w: 438, h: 600, fx: 0, fy: -9 },
+      { x: 2268, y: 0, w: 438, h: 602, fx: 0, fy: -7 },
+      { x: 2268, y: 0, w: 438, h: 602, fx: 0, fy: -7 },
+      { x: 2720, y: 0, w: 437, h: 607, fx: -2, fy: -2 },
+      { x: 2720, y: 0, w: 437, h: 607, fx: -2, fy: -2 },
+      { x: 3171, y: 0, w: 439, h: 608, fx: -3, fy: 0 },
+      { x: 3171, y: 0, w: 439, h: 608, fx: -3, fy: 0 },
+      { x: 3624, y: 0, w: 439, h: 608, fx: -3, fy: 0 },
+      { x: 3624, y: 0, w: 439, h: 608, fx: -3, fy: 0 },
+      { x: 3624, y: 0, w: 439, h: 608, fx: -3, fy: 0 },
+      { x: 3624, y: 0, w: 439, h: 608, fx: -3, fy: 0 },
+      { x: 3624, y: 0, w: 439, h: 608, fx: -3, fy: 0 },
+      { x: 3624, y: 0, w: 439, h: 608, fx: -3, fy: 0 },
+    ],
+  },
+  left: {
+    fps: 24,
+    offset: [143, 105],
+    frames: [
+      { x: 0, y: 622, w: 427, h: 613, fx: 0, fy: 0 },
+      { x: 0, y: 622, w: 427, h: 613, fx: 0, fy: 0 },
+      { x: 441, y: 622, w: 427, h: 613, fx: -2, fy: 0 },
+      { x: 441, y: 622, w: 427, h: 613, fx: -2, fy: 0 },
+      { x: 882, y: 622, w: 430, h: 611, fx: -7, fy: -2 },
+      { x: 882, y: 622, w: 430, h: 611, fx: -7, fy: -2 },
+      { x: 1326, y: 622, w: 431, h: 611, fx: -7, fy: -2 },
+      { x: 1326, y: 622, w: 431, h: 611, fx: -7, fy: -2 },
+      { x: 1326, y: 622, w: 431, h: 611, fx: -7, fy: -2 },
+      { x: 1326, y: 622, w: 431, h: 611, fx: -7, fy: -2 },
+      { x: 1326, y: 622, w: 431, h: 611, fx: -7, fy: -2 },
+      { x: 1326, y: 622, w: 431, h: 611, fx: -7, fy: -2 },
+      { x: 1326, y: 622, w: 431, h: 611, fx: -7, fy: -2 },
+    ],
+  },
+  down: {
+    fps: 24,
+    offset: [149, 96],
+    frames: [
+      { x: 0, y: 0, w: 441, h: 597, fx: 0, fy: -8 },
+      { x: 0, y: 0, w: 441, h: 597, fx: 0, fy: -8 },
+      { x: 455, y: 0, w: 441, h: 597, fx: -1, fy: -7 },
+      { x: 455, y: 0, w: 441, h: 597, fx: -1, fy: -7 },
+      { x: 910, y: 0, w: 439, h: 603, fx: -5, fy: -1 },
+      { x: 910, y: 0, w: 439, h: 603, fx: -5, fy: -1 },
+      { x: 1363, y: 0, w: 439, h: 605, fx: -5, fy: 0 },
+      { x: 1363, y: 0, w: 439, h: 605, fx: -5, fy: 0 },
+      { x: 1363, y: 0, w: 439, h: 605, fx: -5, fy: 0 },
+      { x: 1363, y: 0, w: 439, h: 605, fx: -5, fy: 0 },
+      { x: 1363, y: 0, w: 439, h: 605, fx: -5, fy: 0 },
+      { x: 1363, y: 0, w: 439, h: 605, fx: -5, fy: 0 },
+      { x: 1363, y: 0, w: 439, h: 605, fx: -5, fy: 0 },
+    ],
+  },
+  up: {
+    fps: 24,
+    offset: [137, 129],
+    frames: [
+      { x: 907, y: 2547, w: 442, h: 637, fx: -3, fy: 0 },
+      { x: 907, y: 2547, w: 442, h: 637, fx: -3, fy: 0 },
+      { x: 1363, y: 2547, w: 442, h: 635, fx: -3, fy: -2 },
+      { x: 1363, y: 2547, w: 442, h: 635, fx: -3, fy: -2 },
+      { x: 1819, y: 2547, w: 443, h: 624, fx: 0, fy: -13 },
+      { x: 1819, y: 2547, w: 443, h: 624, fx: 0, fy: -13 },
+      { x: 2276, y: 2547, w: 443, h: 622, fx: 0, fy: -15 },
+      { x: 2276, y: 2547, w: 443, h: 622, fx: 0, fy: -15 },
+      { x: 2276, y: 2547, w: 443, h: 622, fx: 0, fy: -15 },
+      { x: 2276, y: 2547, w: 443, h: 622, fx: 0, fy: -15 },
+      { x: 2276, y: 2547, w: 443, h: 622, fx: 0, fy: -15 },
+      { x: 2276, y: 2547, w: 443, h: 622, fx: 0, fy: -15 },
+      { x: 2276, y: 2547, w: 443, h: 622, fx: 0, fy: -15 },
+    ],
+  },
+  right: {
+    fps: 24,
+    offset: [138, 121],
+    frames: [
+      { x: 2764, y: 1896, w: 443, h: 630, fx: 0, fy: 0 },
+      { x: 2764, y: 1896, w: 443, h: 630, fx: 0, fy: 0 },
+      { x: 3221, y: 1896, w: 443, h: 630, fx: 0, fy: -1 },
+      { x: 3221, y: 1896, w: 443, h: 630, fx: 0, fy: -1 },
+      { x: 0, y: 2547, w: 440, h: 623, fx: 0, fy: -7 },
+      { x: 0, y: 2547, w: 440, h: 623, fx: 0, fy: -7 },
+      { x: 454, y: 2547, w: 439, h: 622, fx: 0, fy: -8 },
+      { x: 454, y: 2547, w: 439, h: 622, fx: 0, fy: -8 },
+      { x: 454, y: 2547, w: 439, h: 622, fx: 0, fy: -8 },
+      { x: 454, y: 2547, w: 439, h: 622, fx: 0, fy: -8 },
+      { x: 454, y: 2547, w: 439, h: 622, fx: 0, fy: -8 },
+      { x: 454, y: 2547, w: 439, h: 622, fx: 0, fy: -8 },
+      { x: 454, y: 2547, w: 439, h: 622, fx: 0, fy: -8 },
+    ],
+  },
+  revealed: {
+    fps: 12,
+    offset: [158, 111],
+    frames: [
+      // Immediate dark-blue glowing-red-eye bleeding sprites (Sonic Reveal0020 & 0022) when sprite changes at 41.33s
+      { x: 1846, y: 1896, w: 446, h: 617, fx: -18, fy: -3 },
+      { x: 1846, y: 1896, w: 446, h: 617, fx: -18, fy: -3 },
+      { x: 2306, y: 1896, w: 444, h: 608, fx: -18, fy: -11 },
+      { x: 2306, y: 1896, w: 444, h: 608, fx: -18, fy: -11 },
+      { x: 1846, y: 1896, w: 446, h: 617, fx: -18, fy: -3 },
+      { x: 1846, y: 1896, w: 446, h: 617, fx: -18, fy: -3 },
+      { x: 2306, y: 1896, w: 444, h: 608, fx: -18, fy: -11 },
+      { x: 2306, y: 1896, w: 444, h: 608, fx: -18, fy: -11 },
+    ],
+  },
+};
 
 // Exact 11-frame Sparrow v2 SubTexture animations & Psych Engine offsets for Too Slow Sonic.exe from sonicexe.xml + sonicexe.json
 const SONIC_EXE_TOO_SLOW_ANIMS: Record<
@@ -158,28 +826,41 @@ const SONIC_EXE_TOO_SLOW_ANIMS: Record<
   },
 };
 
-// Exact Sparrow v2 SubTexture frames for Main2GF (gf-encore.json: DanceLeft & DanceRight at 20fps, scale 0.9)
-const GF_ENCORE_DANCE_LEFT_FRAMES = [
-  { x: 0, y: 0, w: 348, h: 583, fx: -3, fy: 0 },
-  { x: 348, y: 0, w: 350, h: 583, fx: -2, fy: 0 },
-  { x: 698, y: 0, w: 354, h: 582, fx: 0, fy: -1 },
-  { x: 1052, y: 0, w: 350, h: 583, fx: -3, fy: 0 },
-  { x: 1402, y: 0, w: 348, h: 580, fx: -9, fy: -3 },
-  { x: 1750, y: 0, w: 346, h: 580, fx: -9, fy: -3 },
-  { x: 2096, y: 0, w: 344, h: 580, fx: -11, fy: -3 },
-  { x: 2440, y: 0, w: 344, h: 580, fx: -11, fy: -3 },
-  { x: 2784, y: 0, w: 340, h: 580, fx: -14, fy: -3 },
+// Exact Sparrow v2 SubTexture frames for GF with the Speakers (GF_assets.xml: GF Dancing Beat0000..0014 = danceLeft, 0015..0029 = danceRight at 24fps, frameWidth 703, frameHeight 648)
+const GF_SPEAKER_DANCE_LEFT_FRAMES = [
+  { x: 3553, y: 0, w: 699, h: 634, fx: -2, fy: -14 },
+  { x: 4262, y: 0, w: 703, h: 634, fx: 0, fy: -14 },
+  { x: 4975, y: 0, w: 703, h: 632, fx: 0, fy: -16 },
+  { x: 5688, y: 0, w: 699, h: 632, fx: -2, fy: -16 },
+  { x: 6397, y: 0, w: 699, h: 635, fx: -2, fy: -13 },
+  { x: 7106, y: 0, w: 699, h: 635, fx: -2, fy: -13 },
+  { x: 0, y: 667, w: 699, h: 637, fx: -2, fy: -11 },
+  { x: 709, y: 667, w: 699, h: 648, fx: -2, fy: 0 },
+  { x: 709, y: 667, w: 699, h: 648, fx: -2, fy: 0 },
+  { x: 709, y: 667, w: 699, h: 648, fx: -2, fy: 0 },
+  { x: 1418, y: 667, w: 699, h: 648, fx: -2, fy: 0 },
+  { x: 1418, y: 667, w: 699, h: 648, fx: -2, fy: 0 },
+  { x: 1418, y: 667, w: 699, h: 648, fx: -2, fy: 0 },
+  { x: 2127, y: 667, w: 699, h: 648, fx: -2, fy: 0 },
+  { x: 2127, y: 667, w: 699, h: 648, fx: -2, fy: 0 },
 ] as const;
 
-const GF_ENCORE_DANCE_RIGHT_FRAMES = [
-  { x: 3124, y: 0, w: 334, h: 580, fx: -18, fy: -3 },
-  { x: 3458, y: 0, w: 341, h: 577, fx: -25, fy: -6 },
-  { x: 0, y: 583, w: 338, h: 578, fx: -27, fy: -5 },
-  { x: 338, y: 583, w: 343, h: 576, fx: -23, fy: -7 },
-  { x: 681, y: 583, w: 344, h: 576, fx: -22, fy: -7 },
-  { x: 1025, y: 583, w: 344, h: 575, fx: -22, fy: -8 },
-  { x: 1369, y: 583, w: 349, h: 575, fx: -17, fy: -8 },
-  { x: 1718, y: 583, w: 351, h: 575, fx: -14, fy: -8 },
+const GF_SPEAKER_DANCE_RIGHT_FRAMES = [
+  { x: 2836, y: 667, w: 699, h: 636, fx: -2, fy: -12 },
+  { x: 3545, y: 667, w: 703, h: 636, fx: 0, fy: -12 },
+  { x: 4258, y: 667, w: 703, h: 636, fx: 0, fy: -12 },
+  { x: 4971, y: 667, w: 699, h: 636, fx: -2, fy: -12 },
+  { x: 5680, y: 667, w: 699, h: 637, fx: -2, fy: -11 },
+  { x: 6389, y: 667, w: 699, h: 637, fx: -2, fy: -11 },
+  { x: 7098, y: 667, w: 699, h: 638, fx: -2, fy: -10 },
+  { x: 0, y: 1325, w: 699, h: 643, fx: -2, fy: -5 },
+  { x: 0, y: 1325, w: 699, h: 643, fx: -2, fy: -5 },
+  { x: 0, y: 1325, w: 699, h: 643, fx: -2, fy: -5 },
+  { x: 709, y: 1325, w: 699, h: 642, fx: -2, fy: -6 },
+  { x: 709, y: 1325, w: 699, h: 642, fx: -2, fy: -6 },
+  { x: 709, y: 1325, w: 699, h: 642, fx: -2, fy: -6 },
+  { x: 1418, y: 1325, w: 699, h: 642, fx: -2, fy: -6 },
+  { x: 1418, y: 1325, w: 699, h: 642, fx: -2, fy: -6 },
 ] as const;
 
 // Exact Sparrow v2 SubTexture frames & offsets for Tails.EXE (tails.json, scale 1.2)
@@ -378,6 +1059,239 @@ const EGGY_EXE_ANIMS: Record<
   },
 };
 
+// Exact Sparrow v2 SubTexture frames & Psych Engine offsets for Endless OG Majin Sonic (MajinOG.xml + majin_new.json, scale 1.4)
+const MAJIN_OG_ANIMS: Record<
+  'idle' | 'left' | 'down' | 'up' | 'right',
+  {
+    offset: [number, number];
+    fps: number;
+    frames: readonly { x: number; y: number; w: number; h: number }[];
+  }
+> = {
+  idle: {
+    offset: [-20, -3],
+    fps: 24,
+    frames: [
+      { x: 2300, y: 15, w: 379, h: 439 },
+      { x: 2300, y: 15, w: 379, h: 439 },
+      { x: 2694, y: 15, w: 379, h: 439 },
+      { x: 2694, y: 15, w: 379, h: 439 },
+      { x: 3088, y: 15, w: 379, h: 439 },
+      { x: 3088, y: 15, w: 379, h: 439 },
+      { x: 3482, y: 15, w: 379, h: 439 },
+      { x: 3482, y: 15, w: 379, h: 439 },
+      { x: 15, y: 469, w: 379, h: 439 },
+      { x: 15, y: 469, w: 379, h: 439 },
+      { x: 409, y: 469, w: 379, h: 439 },
+      { x: 409, y: 469, w: 379, h: 439 },
+    ],
+  },
+  up: {
+    offset: [9, 95],
+    fps: 32,
+    frames: [
+      { x: 2543, y: 946, w: 392, h: 534 },
+      { x: 2543, y: 946, w: 392, h: 534 },
+      { x: 2950, y: 946, w: 392, h: 534 },
+      { x: 2950, y: 946, w: 392, h: 534 },
+      { x: 3357, y: 946, w: 392, h: 534 },
+      { x: 3357, y: 946, w: 392, h: 534 },
+      { x: 15, y: 1495, w: 392, h: 534 },
+      { x: 15, y: 1495, w: 392, h: 534 },
+      { x: 422, y: 1495, w: 392, h: 534 },
+      { x: 422, y: 1495, w: 392, h: 534 },
+      { x: 422, y: 1495, w: 392, h: 534 },
+      { x: 422, y: 1495, w: 392, h: 534 },
+    ],
+  },
+  down: {
+    offset: [24, -73],
+    fps: 32,
+    frames: [
+      { x: 15, y: 15, w: 442, h: 390 },
+      { x: 15, y: 15, w: 442, h: 390 },
+      { x: 472, y: 15, w: 442, h: 390 },
+      { x: 472, y: 15, w: 442, h: 390 },
+      { x: 929, y: 15, w: 442, h: 390 },
+      { x: 929, y: 15, w: 442, h: 390 },
+      { x: 1386, y: 15, w: 442, h: 390 },
+      { x: 1386, y: 15, w: 442, h: 390 },
+      { x: 1843, y: 15, w: 442, h: 390 },
+      { x: 1843, y: 15, w: 442, h: 390 },
+      { x: 1843, y: 15, w: 442, h: 390 },
+      { x: 1843, y: 15, w: 442, h: 390 },
+    ],
+  },
+  left: {
+    offset: [262, 13],
+    fps: 32,
+    frames: [
+      { x: 803, y: 469, w: 499, h: 462 },
+      { x: 803, y: 469, w: 499, h: 462 },
+      { x: 1317, y: 469, w: 499, h: 462 },
+      { x: 1317, y: 469, w: 499, h: 462 },
+      { x: 1831, y: 469, w: 499, h: 462 },
+      { x: 1831, y: 469, w: 499, h: 462 },
+      { x: 2345, y: 469, w: 499, h: 462 },
+      { x: 2345, y: 469, w: 499, h: 462 },
+      { x: 2859, y: 469, w: 499, h: 462 },
+      { x: 2859, y: 469, w: 499, h: 462 },
+      { x: 2859, y: 469, w: 499, h: 462 },
+      { x: 2859, y: 469, w: 499, h: 462 },
+    ],
+  },
+  right: {
+    offset: [60, -33],
+    fps: 32,
+    frames: [
+      { x: 3373, y: 469, w: 617, h: 417 },
+      { x: 3373, y: 469, w: 617, h: 417 },
+      { x: 15, y: 946, w: 617, h: 417 },
+      { x: 15, y: 946, w: 617, h: 417 },
+      { x: 647, y: 946, w: 617, h: 417 },
+      { x: 647, y: 946, w: 617, h: 417 },
+      { x: 1279, y: 946, w: 617, h: 417 },
+      { x: 1279, y: 946, w: 617, h: 417 },
+      { x: 1911, y: 946, w: 617, h: 417 },
+      { x: 1911, y: 946, w: 617, h: 417 },
+      { x: 1911, y: 946, w: 617, h: 417 },
+      { x: 1911, y: 946, w: 617, h: 417 },
+    ],
+  },
+};
+
+// Exact Sparrow v2 SubTexture frames & Psych Engine offsets for Endless Majin Sonic (SonicFunAssets.xml + majin.json, scale 1.0, 24fps)
+const SONIC_FUN_ANIMS: Record<
+  'idle' | 'left' | 'down' | 'up' | 'right',
+  {
+    offset: [number, number];
+    fps: number;
+    frames: readonly { x: number; y: number; w: number; h: number }[];
+  }
+> = {
+  idle: {
+    offset: [-42, 183],
+    fps: 24,
+    frames: [
+      { x: 4382, y: 536, w: 516, h: 678 },
+      { x: 4898, y: 536, w: 516, h: 678 },
+      { x: 5414, y: 536, w: 516, h: 678 },
+      { x: 5930, y: 536, w: 516, h: 678 },
+      { x: 6446, y: 536, w: 516, h: 678 },
+      { x: 6962, y: 536, w: 516, h: 678 },
+      { x: 7478, y: 536, w: 516, h: 678 },
+      { x: 0, y: 1214, w: 516, h: 678 },
+      { x: 516, y: 1214, w: 516, h: 678 },
+      { x: 1032, y: 1214, w: 516, h: 678 },
+      { x: 1548, y: 1214, w: 516, h: 678 },
+    ],
+  },
+  left: {
+    offset: [275, 54],
+    fps: 24,
+    frames: [
+      { x: 2064, y: 1214, w: 741, h: 553 },
+      { x: 2805, y: 1214, w: 741, h: 553 },
+      { x: 3546, y: 1214, w: 741, h: 553 },
+      { x: 4287, y: 1214, w: 741, h: 553 },
+      { x: 5028, y: 1214, w: 741, h: 553 },
+      { x: 5769, y: 1214, w: 741, h: 553 },
+      { x: 6510, y: 1214, w: 741, h: 553 },
+      { x: 7251, y: 1214, w: 741, h: 553 },
+      { x: 0, y: 1892, w: 741, h: 553 },
+      { x: 741, y: 1892, w: 741, h: 553 },
+      { x: 1482, y: 1892, w: 741, h: 553 },
+      { x: 2223, y: 1892, w: 741, h: 553 },
+      { x: 2964, y: 1892, w: 741, h: 553 },
+      { x: 3705, y: 1892, w: 741, h: 553 },
+      { x: 4446, y: 1892, w: 741, h: 553 },
+      { x: 5187, y: 1892, w: 741, h: 553 },
+      { x: 5928, y: 1892, w: 741, h: 553 },
+      { x: 6669, y: 1892, w: 741, h: 553 },
+      { x: 7410, y: 1892, w: 741, h: 553 },
+      { x: 0, y: 2445, w: 741, h: 553 },
+    ],
+  },
+  down: {
+    offset: [51, 45],
+    fps: 24,
+    frames: [
+      { x: 0, y: 0, w: 626, h: 536 },
+      { x: 626, y: 0, w: 626, h: 536 },
+      { x: 1252, y: 0, w: 626, h: 536 },
+      { x: 1878, y: 0, w: 626, h: 536 },
+      { x: 2504, y: 0, w: 626, h: 536 },
+      { x: 3130, y: 0, w: 626, h: 536 },
+      { x: 3756, y: 0, w: 626, h: 536 },
+      { x: 4382, y: 0, w: 626, h: 536 },
+      { x: 5008, y: 0, w: 626, h: 536 },
+      { x: 5634, y: 0, w: 626, h: 536 },
+      { x: 6260, y: 0, w: 626, h: 536 },
+      { x: 6886, y: 0, w: 626, h: 536 },
+      { x: 7512, y: 0, w: 626, h: 536 },
+      { x: 0, y: 536, w: 626, h: 536 },
+      { x: 626, y: 536, w: 626, h: 536 },
+      { x: 1252, y: 536, w: 626, h: 536 },
+      { x: 1878, y: 536, w: 626, h: 536 },
+      { x: 2504, y: 536, w: 626, h: 536 },
+      { x: 3130, y: 536, w: 626, h: 536 },
+      { x: 3756, y: 536, w: 626, h: 536 },
+    ],
+  },
+  up: {
+    offset: [39, 196],
+    fps: 24,
+    frames: [
+      { x: 5643, y: 3067, w: 513, h: 696 },
+      { x: 6156, y: 3067, w: 513, h: 696 },
+      { x: 6669, y: 3067, w: 513, h: 696 },
+      { x: 7182, y: 3067, w: 513, h: 696 },
+      { x: 0, y: 3763, w: 513, h: 696 },
+      { x: 513, y: 3763, w: 513, h: 696 },
+      { x: 1026, y: 3763, w: 513, h: 696 },
+      { x: 1539, y: 3763, w: 513, h: 696 },
+      { x: 2052, y: 3763, w: 513, h: 696 },
+      { x: 2565, y: 3763, w: 513, h: 696 },
+      { x: 3078, y: 3763, w: 513, h: 696 },
+      { x: 3591, y: 3763, w: 513, h: 696 },
+      { x: 4104, y: 3763, w: 513, h: 696 },
+      { x: 4617, y: 3763, w: 513, h: 696 },
+      { x: 5130, y: 3763, w: 513, h: 696 },
+      { x: 5643, y: 3763, w: 513, h: 696 },
+      { x: 6156, y: 3763, w: 513, h: 696 },
+      { x: 6669, y: 3763, w: 513, h: 696 },
+      { x: 7182, y: 3763, w: 513, h: 696 },
+      { x: 0, y: 4459, w: 513, h: 696 },
+    ],
+  },
+  right: {
+    offset: [-51, 133],
+    fps: 24,
+    frames: [
+      { x: 741, y: 2445, w: 627, h: 622 },
+      { x: 1368, y: 2445, w: 627, h: 622 },
+      { x: 1995, y: 2445, w: 627, h: 622 },
+      { x: 2622, y: 2445, w: 627, h: 622 },
+      { x: 3249, y: 2445, w: 627, h: 622 },
+      { x: 3876, y: 2445, w: 627, h: 622 },
+      { x: 4503, y: 2445, w: 627, h: 622 },
+      { x: 5130, y: 2445, w: 627, h: 622 },
+      { x: 5757, y: 2445, w: 627, h: 622 },
+      { x: 6384, y: 2445, w: 627, h: 622 },
+      { x: 7011, y: 2445, w: 627, h: 622 },
+      { x: 0, y: 3067, w: 627, h: 622 },
+      { x: 627, y: 3067, w: 627, h: 622 },
+      { x: 1254, y: 3067, w: 627, h: 622 },
+      { x: 1881, y: 3067, w: 627, h: 622 },
+      { x: 2508, y: 3067, w: 627, h: 622 },
+      { x: 3135, y: 3067, w: 627, h: 622 },
+      { x: 3762, y: 3067, w: 627, h: 622 },
+      { x: 4389, y: 3067, w: 627, h: 622 },
+      { x: 5016, y: 3067, w: 627, h: 622 },
+    ],
+  },
+};
+
 // BloodSplash frames from ringnote.json (noteskins/BloodSplash)
 const BLOOD_SPLASH_FRAMES = [
   { x: 0, y: 0, w: 101, h: 65, fx: -70, fy: -43 },
@@ -494,6 +1408,89 @@ const ENCORE_BF_ANIMS: Record<
   },
 };
 
+// Exact Sparrow v2 SubTexture frames & Psych Engine offsets for standard Boyfriend (BOYFRIEND.xml + bf.json, 24fps)
+const BOYFRIEND_ANIMS: Record<
+  'idle' | 'left' | 'down' | 'up' | 'right' | 'miss',
+  {
+    offset: [number, number];
+    frames: readonly { x: number; y: number; w: number; h: number; fx: number; fy: number }[];
+  }
+> = {
+  idle: {
+    offset: [-5, 0],
+    frames: [
+      { x: 0, y: 2344, w: 406, h: 392, fx: -1, fy: -20 },
+      { x: 0, y: 2344, w: 406, h: 392, fx: -1, fy: -20 },
+      { x: 416, y: 2344, w: 408, h: 393, fx: 0, fy: -19 },
+      { x: 416, y: 2344, w: 408, h: 393, fx: 0, fy: -19 },
+      { x: 834, y: 2344, w: 405, h: 398, fx: -3, fy: -14 },
+      { x: 834, y: 2344, w: 405, h: 398, fx: -3, fy: -14 },
+      { x: 1249, y: 2344, w: 410, h: 411, fx: -1, fy: -1 },
+      { x: 1249, y: 2344, w: 410, h: 411, fx: -1, fy: -1 },
+      { x: 1669, y: 2344, w: 408, h: 412, fx: -2, fy: 0 },
+      { x: 1669, y: 2344, w: 408, h: 412, fx: -2, fy: 0 },
+      { x: 1669, y: 2344, w: 408, h: 412, fx: -2, fy: 0 },
+      { x: 1669, y: 2344, w: 408, h: 412, fx: -2, fy: 0 },
+      { x: 1669, y: 2344, w: 408, h: 412, fx: -2, fy: 0 },
+      { x: 1669, y: 2344, w: 408, h: 412, fx: -2, fy: 0 },
+    ],
+  },
+  left: {
+    offset: [5, -6],
+    frames: [
+      { x: 0, y: 988, w: 383, h: 406, fx: 0, fy: 0 },
+      { x: 0, y: 988, w: 383, h: 406, fx: 0, fy: 0 },
+      { x: 393, y: 988, w: 374, h: 404, fx: -11, fy: -2 },
+      { x: 393, y: 988, w: 374, h: 404, fx: -11, fy: -2 },
+      { x: 393, y: 988, w: 374, h: 404, fx: -11, fy: -2 },
+      { x: 393, y: 988, w: 374, h: 404, fx: -11, fy: -2 },
+    ],
+  },
+  down: {
+    offset: [-10, -50],
+    frames: [
+      { x: 6640, y: 509, w: 374, h: 357, fx: -1, fy: -5 },
+      { x: 6640, y: 509, w: 374, h: 357, fx: -1, fy: -5 },
+      { x: 7024, y: 509, w: 373, h: 362, fx: 0, fy: 0 },
+      { x: 7024, y: 509, w: 373, h: 362, fx: 0, fy: 0 },
+      { x: 7024, y: 509, w: 373, h: 362, fx: 0, fy: 0 },
+      { x: 7024, y: 509, w: 373, h: 362, fx: 0, fy: 0 },
+    ],
+  },
+  up: {
+    offset: [-29, 27],
+    frames: [
+      { x: 3580, y: 988, w: 369, h: 446, fx: -5, fy: 0 },
+      { x: 3580, y: 988, w: 369, h: 446, fx: -5, fy: 0 },
+      { x: 3959, y: 988, w: 376, h: 441, fx: 0, fy: -5 },
+      { x: 3959, y: 988, w: 376, h: 441, fx: 0, fy: -5 },
+      { x: 3959, y: 988, w: 376, h: 441, fx: 0, fy: -5 },
+      { x: 3959, y: 988, w: 376, h: 441, fx: 0, fy: -5 },
+    ],
+  },
+  right: {
+    offset: [-48, -7],
+    frames: [
+      { x: 1929, y: 988, w: 408, h: 405, fx: -1, fy: -2 },
+      { x: 1929, y: 988, w: 408, h: 405, fx: -1, fy: -2 },
+      { x: 2347, y: 988, w: 408, h: 407, fx: 0, fy: 0 },
+      { x: 2347, y: 988, w: 408, h: 407, fx: 0, fy: 0 },
+      { x: 2347, y: 988, w: 408, h: 407, fx: 0, fy: 0 },
+      { x: 2347, y: 988, w: 408, h: 407, fx: 0, fy: 0 },
+    ],
+  },
+  miss: {
+    offset: [-15, -19],
+    frames: [
+      { x: 6640, y: 509, w: 374, h: 357, fx: -1, fy: -35 },
+      { x: 7407, y: 509, w: 376, h: 392, fx: -1, fy: 0 },
+      { x: 7407, y: 509, w: 376, h: 392, fx: -1, fy: 0 },
+      { x: 7793, y: 509, w: 378, h: 388, fx: 0, fy: -4 },
+      { x: 7793, y: 509, w: 378, h: 388, fx: 0, fy: -4 },
+    ],
+  },
+};
+
 // Precomputed deterministic static noise patterns (8 animation frames) matching staticNotes.png
 let staticPatterns: (CanvasPattern | null)[] = [];
 function getStaticNotePattern(
@@ -557,7 +1554,386 @@ function traceRoundedFnfArrowPath(ctx: CanvasRenderingContext2D, half: number) {
   ctx.closePath();
 }
 
-// Helper to draw directional arrow inside receptor or note
+// Offscreen bitmap cache for FNF arrows & receptors so Chromebook GPUs blit pre-rendered arrows in O(1)
+const arrowBitmapCache: Record<string, HTMLCanvasElement> = {};
+
+function getCachedArrowBitmap(
+  size: number,
+  dir: Direction,
+  fillColor: string,
+  isReceptor: boolean,
+  isPressed: boolean,
+  special: 'normal' | 'phantom',
+  isMajinNoteskin: boolean
+): HTMLCanvasElement | null {
+  if (typeof document === 'undefined') return null;
+  const key = `${size}|${dir}|${fillColor}|${isReceptor ? 1 : 0}|${isPressed ? 1 : 0}|${special}|${isMajinNoteskin ? 1 : 0}`;
+  if (arrowBitmapCache[key]) return arrowBitmapCache[key];
+
+  const pad = 16;
+  const dim = Math.ceil(size + pad * 2);
+  const off = document.createElement('canvas');
+  off.width = dim;
+  off.height = dim;
+  const octx = off.getContext('2d');
+  if (!octx) return null;
+
+  octx.translate(dim * 0.5, dim * 0.5);
+  const rotations = [Math.PI, Math.PI / 2, -Math.PI / 2, 0];
+  octx.rotate(rotations[dir]);
+  const scale = isPressed ? 0.94 : 1.0;
+  octx.scale(scale, scale);
+
+  const half = size * 0.48;
+  octx.lineJoin = 'round';
+  octx.lineCap = 'round';
+
+  if (isReceptor) {
+    traceRoundedFnfArrowPath(octx, half);
+    octx.lineWidth = size * 0.14;
+    octx.strokeStyle = '#000000';
+    octx.stroke();
+
+    octx.fillStyle = isPressed
+      ? RECEPTOR_PRESSED_FILL[dir]
+      : isMajinNoteskin
+        ? '#1E3A8A'
+        : '#536270';
+    octx.fill();
+
+    octx.save();
+    octx.scale(0.84, 0.84);
+    traceRoundedFnfArrowPath(octx, half);
+    octx.fillStyle = isPressed
+      ? RECEPTOR_PRESSED_FILL[dir]
+      : isMajinNoteskin
+        ? '#2563EB'
+        : '#697887';
+    octx.fill();
+    octx.restore();
+  } else {
+    const effectiveColor = isMajinNoteskin
+      ? dir === 0
+        ? '#6366F1'
+        : dir === 1
+          ? '#38BDF8'
+          : dir === 2
+            ? '#2DD4BF'
+            : '#3B82F6'
+      : special === 'phantom'
+        ? '#581C87'
+        : LANE_COLORS[dir] || fillColor;
+
+    const outlineColor = isMajinNoteskin
+      ? '#0F172A'
+      : special === 'phantom'
+        ? '#F43F5E'
+        : LANE_OUTLINE_COLORS[dir];
+
+    traceRoundedFnfArrowPath(octx, half);
+    octx.lineWidth = size * 0.15;
+    octx.strokeStyle = outlineColor;
+    octx.stroke();
+
+    octx.fillStyle = '#FFFFFF';
+    octx.fill();
+
+    octx.save();
+    octx.translate(-half * 0.03, 0);
+    octx.scale(0.86, 0.86);
+    traceRoundedFnfArrowPath(octx, half);
+    octx.fillStyle = effectiveColor;
+    octx.fill();
+    octx.restore();
+  }
+
+  arrowBitmapCache[key] = off;
+  return off;
+}
+
+// Authentic SubTexture coordinates for NOTE_assets.png, STATIC_assets.png, PhantomNote.png, and Majin_Notes.png
+const NOTE_ASSETS_STATIC_RECEPTOR: Record<Direction, { x: number; y: number; w: number; h: number }> = {
+  0: { x: 488, y: 238, w: 155, h: 158 }, // arrow static instance 10000 (Left)
+  1: { x: 647, y: 238, w: 157, h: 155 }, // arrow static instance 20000 (Down)
+  2: { x: 323, y: 240, w: 157, h: 154 }, // arrow static instance 40000 (Up)
+  3: { x: 808, y: 238, w: 155, h: 157 }, // arrow static instance 30000 (Right)
+};
+
+const NOTE_ASSETS_PRESS_RECEPTOR: Record<Direction, { x: number; y: number; w: number; h: number }> = {
+  0: { x: 1898, y: 150, w: 146, h: 149 }, // left press instance 10002
+  1: { x: 1898, y: 0, w: 150, h: 146 },   // down press instance 10002
+  2: { x: 158, y: 398, w: 154, h: 151 },  // up press instance 10002
+  3: { x: 316, y: 398, w: 149, h: 152 },  // right press instance 10002
+};
+
+const NOTE_ASSETS_CONFIRM_RECEPTOR: Record<Direction, { x: number; y: number; w: number; h: number }> = {
+  0: { x: 972, y: 0, w: 230, h: 232 },  // left confirm instance 10000
+  1: { x: 0, y: 0, w: 240, h: 236 },    // down confirm instance 10000
+  2: { x: 488, y: 0, w: 238, h: 234 },  // up confirm instance 10000
+  3: { x: 1206, y: 0, w: 228, h: 231 }, // right confirm instance 10002
+};
+
+const NOTE_ASSETS_COLORED_NOTES: Record<Direction, { x: number; y: number; w: number; h: number }> = {
+  0: { x: 0, y: 398, w: 154, h: 157 },   // purple instance 10000 (Left)
+  1: { x: 0, y: 240, w: 158, h: 154 },   // blue instance 10000 (Down)
+  2: { x: 162, y: 240, w: 157, h: 154 }, // green instance 10000 (Up)
+  3: { x: 647, y: 397, w: 154, h: 157 }, // red instance 10000 (Right)
+};
+
+const NOTE_ASSETS_HOLD_PIECE: Record<Direction, { x: number; y: number; w: number; h: number }> = {
+  0: { x: 1337, y: 457, w: 51, h: 44 }, // purple hold piece
+  1: { x: 1282, y: 457, w: 51, h: 44 }, // blue hold piece
+  2: { x: 1227, y: 457, w: 51, h: 44 }, // green hold piece
+  3: { x: 1172, y: 457, w: 51, h: 44 }, // red hold piece
+};
+
+const NOTE_ASSETS_HOLD_END: Record<Direction, { x: number; y: number; w: number; h: number }> = {
+  0: { x: 1117, y: 452, w: 51, h: 64 }, // pruple end hold
+  1: { x: 1062, y: 452, w: 51, h: 64 }, // blue hold end
+  2: { x: 1007, y: 452, w: 51, h: 64 }, // green hold end
+  3: { x: 952, y: 452, w: 51, h: 64 },  // red hold end
+};
+
+const STATIC_NOTE_SUBTEXTURES: Record<Direction, { x: number; y: number; w: number; h: number }> = {
+  0: { x: 5, y: 164, w: 155, h: 158 },   // purple0000 (Left)
+  1: { x: 115, y: 5, w: 158, h: 155 },   // blue0000 (Down)
+  2: { x: 277, y: 5, w: 158, h: 155 },   // green0000 (Up)
+  3: { x: 163, y: 164, w: 155, h: 158 }, // red0000 (Right)
+};
+
+const PHANTOM_NOTE_SUBTEXTURES: Record<Direction, { x: number; y: number; w: number; h: number }> = {
+  0: { x: 0, y: 193, w: 187, h: 190 },   // A0000 (Left)
+  1: { x: 0, y: 0, w: 196, h: 193 },     // B0000 (Down)
+  2: { x: 196, y: 0, w: 184, h: 181 },   // C0000 (Up)
+  3: { x: 187, y: 193, w: 193, h: 196 }, // D0000 (Right)
+};
+
+const MAJIN_STATIC_RECEPTOR: Record<Direction, { x: number; y: number; w: number; h: number }> = {
+  0: { x: 157, y: 0, w: 154, h: 157 }, // arrowLEFT0000
+  1: { x: 0, y: 0, w: 157, h: 154 },   // arrowDOWN0000
+  2: { x: 465, y: 0, w: 157, h: 154 }, // arrowUP0000
+  3: { x: 311, y: 0, w: 154, h: 157 }, // arrowRIGHT0000
+};
+
+const MAJIN_PRESS_RECEPTOR: Record<Direction, { x: number; y: number; w: number; h: number }> = {
+  0: { x: 930, y: 235, w: 146, h: 149 },  // left press0002
+  1: { x: 1742, y: 0, w: 149, h: 146 },   // down press0002
+  2: { x: 1383, y: 466, w: 153, h: 150 }, // up press0002
+  3: { x: 374, y: 466, w: 148, h: 151 },  // right press0002
+};
+
+const MAJIN_CONFIRM_RECEPTOR: Record<Direction, { x: number; y: number; w: number; h: number }> = {
+  0: { x: 100, y: 235, w: 228, h: 231 },  // left confirm0000
+  1: { x: 879, y: 0, w: 238, h: 235 },    // down confirm0000
+  2: { x: 522, y: 466, w: 236, h: 232 },  // up confirm0000
+  3: { x: 1584, y: 235, w: 226, h: 230 }, // right confirm0000
+};
+
+const MAJIN_COLORED_NOTES: Record<Direction, { x: number; y: number; w: number; h: number }> = {
+  0: { x: 1126, y: 235, w: 154, h: 157 }, // purple0000
+  1: { x: 622, y: 0, w: 157, h: 154 },    // blue0000
+  2: { x: 1891, y: 0, w: 157, h: 154 },   // green0000
+  3: { x: 1330, y: 235, w: 154, h: 157 }, // red0000
+};
+
+export function drawFnfSustainTail(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  startY: number,
+  endY: number,
+  dir: Direction,
+  downscroll: boolean,
+  isMajinNoteskin = false,
+  isAntiLag = false,
+  isPixelNoteskin = false
+) {
+  const dist = downscroll ? startY - endY : endY - startY;
+  if (dist <= 4) return;
+
+  if (isPixelNoteskin) {
+    const pixelEnds = getSpriteSheet('/sprites/arrowEndsNew.png');
+    if (pixelEnds) {
+      const tailW = 42;
+      const capH = Math.min(dist, 30);
+      const bodyH = Math.max(0, dist - capH);
+      const pieceX = dir * 18;
+      const capX = dir * 18 + 9;
+      ctx.save();
+      const prevSmooth = ctx.imageSmoothingEnabled;
+      ctx.imageSmoothingEnabled = false;
+      ctx.globalAlpha = isAntiLag ? 0.88 : 0.78;
+      if (downscroll) {
+        if (bodyH > 0) {
+          ctx.drawImage(
+            pixelEnds,
+            pieceX,
+            0,
+            9,
+            6,
+            x - tailW * 0.5,
+            endY + capH,
+            tailW,
+            bodyH
+          );
+        }
+        ctx.translate(x, endY + capH * 0.5);
+        ctx.scale(1, -1);
+        ctx.drawImage(
+          pixelEnds,
+          capX,
+          0,
+          9,
+          6,
+          -tailW * 0.5,
+          -capH * 0.5,
+          tailW,
+          capH
+        );
+      } else {
+        if (bodyH > 0) {
+          ctx.drawImage(
+            pixelEnds,
+            pieceX,
+            0,
+            9,
+            6,
+            x - tailW * 0.5,
+            startY,
+            tailW,
+            bodyH
+          );
+        }
+        ctx.drawImage(
+          pixelEnds,
+          capX,
+          0,
+          9,
+          6,
+          x - tailW * 0.5,
+          endY - capH,
+          tailW,
+          capH
+        );
+      }
+      ctx.imageSmoothingEnabled = prevSmooth;
+      ctx.restore();
+      return;
+    }
+  }
+
+  const noteSheet = getSpriteSheet('/sprites/NOTE_assets.png');
+  if (noteSheet && !isMajinNoteskin) {
+    const piece = NOTE_ASSETS_HOLD_PIECE[dir];
+    const endCap = NOTE_ASSETS_HOLD_END[dir];
+    const tailW = 34;
+    const capH = Math.min(dist, 42);
+    const bodyH = Math.max(0, dist - capH);
+
+    ctx.save();
+    ctx.globalAlpha = isAntiLag ? 0.85 : 0.72;
+    if (downscroll) {
+      if (bodyH > 0) {
+        ctx.drawImage(
+          noteSheet,
+          piece.x,
+          piece.y,
+          piece.w,
+          piece.h,
+          x - tailW * 0.5,
+          endY + capH,
+          tailW,
+          bodyH
+        );
+      }
+      ctx.translate(x, endY + capH * 0.5);
+      ctx.scale(1, -1);
+      ctx.drawImage(
+        noteSheet,
+        endCap.x,
+        endCap.y,
+        endCap.w,
+        endCap.h,
+        -tailW * 0.5,
+        -capH * 0.5,
+        tailW,
+        capH
+      );
+    } else {
+      if (bodyH > 0) {
+        ctx.drawImage(
+          noteSheet,
+          piece.x,
+          piece.y,
+          piece.w,
+          piece.h,
+          x - tailW * 0.5,
+          startY,
+          tailW,
+          bodyH
+        );
+      }
+      ctx.drawImage(
+        noteSheet,
+        endCap.x,
+        endCap.y,
+        endCap.w,
+        endCap.h,
+        x - tailW * 0.5,
+        endY - capH,
+        tailW,
+        capH
+      );
+    }
+    ctx.restore();
+    return;
+  }
+
+  ctx.save();
+  ctx.strokeStyle = isMajinNoteskin ? '#60A5FA' : LANE_COLORS[dir];
+  if (!isAntiLag) {
+    ctx.globalAlpha = 0.75;
+    ctx.lineCap = 'round';
+  }
+  ctx.lineWidth = 28;
+  ctx.beginPath();
+  ctx.moveTo(x, startY);
+  ctx.lineTo(x, endY);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawNoteSubTextureDirect(
+  ctx: CanvasRenderingContext2D,
+  sheet: HTMLImageElement,
+  sx: number,
+  sy: number,
+  sw: number,
+  sh: number,
+  drawW: number,
+  drawH: number,
+  pixelated = false
+) {
+  const prevSmooth = ctx.imageSmoothingEnabled;
+  if (pixelated) {
+    ctx.imageSmoothingEnabled = false;
+  }
+  ctx.drawImage(
+    sheet,
+    sx,
+    sy,
+    sw,
+    sh,
+    -drawW * 0.5,
+    -drawH * 0.5,
+    drawW,
+    drawH
+  );
+  if (pixelated) {
+    ctx.imageSmoothingEnabled = prevSmooth;
+  }
+}
+
+// Universal FNF Arrow Target, Scrolling Note, Static Note, Phantom Note & Ring Note Renderer
 export function drawFnfArrow(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -569,51 +1945,228 @@ export function drawFnfArrow(
   isPressed = false,
   special: 'normal' | 'static' | 'phantom' | 'ring' = 'normal',
   extraSpinRad = 0,
-  isMajinNoteskin = false
+  isMajinNoteskin = false,
+  isConfirm = false,
+  isPixelNoteskin = false
 ) {
   ctx.save();
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.shadowBlur = 0;
+  ctx.shadowColor = 'transparent';
   ctx.translate(x, y);
+  if (extraSpinRad !== 0) {
+    ctx.rotate(extraSpinRad);
+  }
 
-  if (special === 'ring') {
-    // Ring Note (EXE) from ringnote.json: assetPath "notekinds/ringnote/ring", scale 0.7, purple0000/blue0000/green0000/red0000
-    const ringSheet = getSpriteSheet('/sprites/RingNote.png');
-    if (ringSheet) {
-      const drawSize = size * 0.96;
-      ctx.drawImage(
-        ringSheet,
-        112,
-        24,
-        150,
-        150,
-        -drawSize * 0.5,
-        -drawSize * 0.5,
-        drawSize,
-        drawSize
-      );
+  // 0. 16-Bit Pixel Noteskin (You Can't Run Genesis Section: arrows-pixels.png & pixel static warning note)
+  if (isPixelNoteskin) {
+    const prevSmooth = ctx.imageSmoothingEnabled;
+    ctx.imageSmoothingEnabled = false;
+
+    if (!isReceptor && special === 'static') {
+      // Iconic 16-bit pink/magenta pixel warning diamond/badge with '!' from YCR pixel section
+      const p = Math.round(size / 17);
+      const halfGrid = 7;
+      for (let gy = -halfGrid; gy <= halfGrid; gy++) {
+        for (let gx = -halfGrid; gx <= halfGrid; gx++) {
+          const manhattan = Math.abs(gx) + Math.abs(gy);
+          if (manhattan > 9 || Math.abs(gx) > 6 || Math.abs(gy) > 6) continue;
+          const isBorder =
+            manhattan >= 8 || Math.abs(gx) === 6 || Math.abs(gy) === 6;
+          ctx.fillStyle = isBorder
+            ? gy < 0
+              ? '#F472B6'
+              : '#BE185D'
+            : '#831843';
+          ctx.fillRect(gx * p, gy * p, p, p);
+        }
+      }
+      // Bright yellow/white pixel '!' exclamation mark in center
+      ctx.fillStyle = '#FEF08A';
+      ctx.fillRect(-p, -4 * p, p * 2, p * 5);
+      ctx.fillRect(-p, 2 * p, p * 2, p * 2);
+      ctx.imageSmoothingEnabled = prevSmooth;
       ctx.restore();
       return;
     }
 
-    const r = size * 0.42;
-    ctx.beginPath();
-    ctx.arc(0, 0, r, 0, Math.PI * 2);
-    ctx.lineWidth = size * 0.16;
-    ctx.strokeStyle = '#FACC15';
-    ctx.shadowColor = '#FDE047';
-    ctx.shadowBlur = 12;
-    ctx.stroke();
+    const pixelArrows = getSpriteSheet('/sprites/arrows-pixels.png');
+    if (pixelArrows && (isReceptor || special === 'normal')) {
+      const sx = dir * 17;
+      const sy = isReceptor
+        ? isConfirm
+          ? Math.floor(performance.now() / 65) % 2 === 0
+            ? 51
+            : 68
+          : isPressed
+            ? 34
+            : 0
+        : 17;
+      const drawDim = Math.round(size * 0.96);
+      drawNoteSubTextureDirect(
+        ctx,
+        pixelArrows,
+        sx,
+        sy,
+        17,
+        17,
+        drawDim,
+        drawDim,
+        true
+      );
+      ctx.imageSmoothingEnabled = prevSmooth;
+      ctx.restore();
+      return;
+    }
+    ctx.imageSmoothingEnabled = prevSmooth;
+  }
 
-    ctx.beginPath();
-    ctx.arc(0, 0, r, 0, Math.PI * 2);
-    ctx.lineWidth = size * 0.05;
-    ctx.strokeStyle = '#FEF08A';
-    ctx.stroke();
+  // 1. Ring Note (EXE) from shared/images/notekinds/ringnote/ring.png + ring.xml
+  if (special === 'ring') {
+    const ringSheet = getSpriteSheet('/sprites/RingNote.png');
+    if (ringSheet) {
+      if (isReceptor) {
+        const sub = isConfirm
+          ? { x: 0, y: 0, w: 224, h: 229 } // space confirm0000
+          : isPressed
+            ? { x: 0, y: 229, w: 158, h: 159 } // space press0002
+            : { x: 158, y: 229, w: 149, h: 150 }; // arrowSPACE0000
+        const mult = isConfirm ? 1.42 : isPressed ? 0.96 : 1.0;
+        const baseRef = isConfirm ? 226 : isPressed ? 158 : 150;
+        const drawW = size * mult * (sub.w / baseRef);
+        const drawH = size * mult * (sub.h / baseRef);
+        drawNoteSubTextureDirect(
+          ctx,
+          ringSheet,
+          sub.x,
+          sub.y,
+          sub.w,
+          sub.h,
+          drawW,
+          drawH
+        );
+      } else {
+        const drawSize = size * 0.96;
+        // green0000 / red0000 / purple0000 / blue0000 at (424, 0, 149, 150)
+        drawNoteSubTextureDirect(
+          ctx,
+          ringSheet,
+          424,
+          0,
+          149,
+          150,
+          drawSize,
+          drawSize
+        );
+      }
+      ctx.restore();
+      return;
+    }
+  }
+
+  // 2. Static Note (EXE) from STATIC_assets.png (notekinds/staticnote/STATIC_assets)
+  if (!isReceptor && special === 'static') {
+    const staticSheet = getSpriteSheet('/sprites/STATIC_assets.png');
+    if (staticSheet) {
+      const sub = STATIC_NOTE_SUBTEXTURES[dir];
+      const drawW = size * (sub.w / 156);
+      const drawH = size * (sub.h / 156);
+      drawNoteSubTextureDirect(
+        ctx,
+        staticSheet,
+        sub.x,
+        sub.y,
+        sub.w,
+        sub.h,
+        drawW,
+        drawH
+      );
+      ctx.restore();
+      return;
+    }
+  }
+
+  // 3. Phantom Note (EXE) from PhantomNote.png (notekinds/phantomnote/PhantomNote)
+  if (!isReceptor && special === 'phantom') {
+    const phantomSheet = getSpriteSheet('/sprites/PhantomNote.png');
+    if (phantomSheet) {
+      const sub = PHANTOM_NOTE_SUBTEXTURES[dir];
+      const drawW = size * 1.12 * (sub.w / 190);
+      const drawH = size * 1.12 * (sub.h / 190);
+      drawNoteSubTextureDirect(
+        ctx,
+        phantomSheet,
+        sub.x,
+        sub.y,
+        sub.w,
+        sub.h,
+        drawW,
+        drawH
+      );
+      ctx.restore();
+      return;
+    }
+  }
+
+  // 4. Majin Noteskin (Endless NoteSwapEvent) from Majin_Notes.png
+  if (isMajinNoteskin) {
+    const majinSheet = getSpriteSheet('/sprites/Majin_Notes.png');
+    if (majinSheet) {
+      const sub = isReceptor
+        ? isConfirm
+          ? MAJIN_CONFIRM_RECEPTOR[dir]
+          : isPressed
+            ? MAJIN_PRESS_RECEPTOR[dir]
+            : MAJIN_STATIC_RECEPTOR[dir]
+        : MAJIN_COLORED_NOTES[dir];
+      const mult = isReceptor && isConfirm ? 1.42 : isReceptor && isPressed ? 0.95 : 1.0;
+      const drawW = size * mult * (sub.w / (isReceptor && isConfirm ? 232 : 156));
+      const drawH = size * mult * (sub.h / (isReceptor && isConfirm ? 232 : 156));
+      drawNoteSubTextureDirect(
+        ctx,
+        majinSheet,
+        sub.x,
+        sub.y,
+        sub.w,
+        sub.h,
+        drawW,
+        drawH
+      );
+      ctx.restore();
+      return;
+    }
+  }
+
+  // 5. Universal FNF Arrow Targets & Colored Notes from NOTE_assets.png
+  const noteSheet = getSpriteSheet('/sprites/NOTE_assets.png');
+  if (noteSheet) {
+    const sub = isReceptor
+      ? isConfirm
+        ? NOTE_ASSETS_CONFIRM_RECEPTOR[dir]
+        : isPressed
+          ? NOTE_ASSETS_PRESS_RECEPTOR[dir]
+          : NOTE_ASSETS_STATIC_RECEPTOR[dir]
+      : NOTE_ASSETS_COLORED_NOTES[dir];
+    const mult = isReceptor && isConfirm ? 1.44 : isReceptor && isPressed ? 0.95 : 1.0;
+    const baseRef = isReceptor && isConfirm ? 234 : isReceptor && isPressed ? 149 : 156;
+    const drawW = size * mult * (sub.w / baseRef);
+    const drawH = size * mult * (sub.h / baseRef);
+    drawNoteSubTextureDirect(
+      ctx,
+      noteSheet,
+      sub.x,
+      sub.y,
+      sub.w,
+      sub.h,
+      drawW,
+      drawH
+    );
     ctx.restore();
     return;
   }
 
   const rotations = [Math.PI, Math.PI / 2, -Math.PI / 2, 0];
-  ctx.rotate(rotations[dir] + extraSpinRad);
+  ctx.rotate(rotations[dir]);
 
   const scale = isPressed ? 0.94 : 1.0;
   ctx.scale(scale, scale);
@@ -717,6 +2270,83 @@ export function drawFnfArrow(
   ctx.restore();
 }
 
+let cachedMajinBopperBack: HTMLCanvasElement | null = null;
+let cachedMajinBopperFront: HTMLCanvasElement | null = null;
+
+function getMajinBopperBitmap(isForeground: boolean): HTMLCanvasElement | null {
+  if (typeof document === 'undefined') return null;
+  if (isForeground && cachedMajinBopperFront) return cachedMajinBopperFront;
+  if (!isForeground && cachedMajinBopperBack) return cachedMajinBopperBack;
+
+  const c = document.createElement('canvas');
+  c.width = 120;
+  c.height = 170;
+  const ctx = c.getContext('2d');
+  if (!ctx) return null;
+
+  ctx.translate(68, 92);
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+
+  const fillCol = isForeground ? '#0B1536' : '#1E3A8A';
+  const rimCol = isForeground ? '#3B82F6' : '#60A5FA';
+  ctx.fillStyle = fillCol;
+  ctx.strokeStyle = rimCol;
+  ctx.lineWidth = 3;
+
+  // Swept-back Majin quills
+  ctx.beginPath();
+  ctx.moveTo(-10, -56);
+  ctx.lineTo(-48, -68);
+  ctx.lineTo(-28, -46);
+  ctx.lineTo(-56, -38);
+  ctx.lineTo(-26, -24);
+  ctx.lineTo(-48, -12);
+  ctx.lineTo(-8, -14);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // Torso & Shoulders
+  ctx.beginPath();
+  ctx.roundRect(-24, -14, 48, 76, 16);
+  ctx.fill();
+  ctx.stroke();
+
+  // Majin Head & Pointed Ears
+  ctx.beginPath();
+  ctx.moveTo(-16, -58);
+  ctx.lineTo(-22, -82);
+  ctx.lineTo(-4, -64);
+  ctx.lineTo(10, -64);
+  ctx.lineTo(22, -82);
+  ctx.lineTo(20, -56);
+  ctx.arc(2, -38, 26, -0.3, Math.PI + 0.3);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // Iconic Majin M-brow, crescent eyes & wide cheek-to-cheek grin
+  ctx.fillStyle = '#040717';
+  ctx.beginPath();
+  ctx.arc(-6, -40, 5, Math.PI, 0);
+  ctx.arc(12, -40, 5, Math.PI, 0);
+  ctx.fill();
+
+  ctx.strokeStyle = rimCol;
+  ctx.lineWidth = 2.2;
+  ctx.beginPath();
+  ctx.moveTo(-12, -28);
+  ctx.quadraticCurveTo(3, -16, 18, -28);
+  ctx.quadraticCurveTo(12, -14, 3, -14);
+  ctx.quadraticCurveTo(-6, -14, -12, -28);
+  ctx.stroke();
+
+  if (isForeground) cachedMajinBopperFront = c;
+  else cachedMajinBopperBack = c;
+  return c;
+}
+
 // Draw Majin Forest animated background & foreground boppers (Majin Boppers Back/Front + majin FG1/FG2)
 export function drawMajinForestBoppers(
   ctx: CanvasRenderingContext2D,
@@ -727,9 +2357,6 @@ export function drawMajinForestBoppers(
   layer: 'back' | 'front',
   cameraOffsetX = 0
 ) {
-  ctx.save();
-  ctx.lineJoin = 'round';
-  ctx.lineCap = 'round';
   const beatPeriod = 60000 / bpm;
   const beatPhase = (timeMs % beatPeriod) / beatPeriod;
   const bopY = Math.abs(Math.sin(beatPhase * Math.PI)) * 12;
@@ -741,75 +2368,23 @@ export function drawMajinForestBoppers(
     isForeground: boolean,
     flipX = false
   ) => {
+    const bmp = getMajinBopperBitmap(isForeground);
+    if (!bmp) return;
     ctx.save();
     ctx.translate(bx, by);
     if (flipX) ctx.scale(-scale, scale);
     else ctx.scale(scale, scale);
-
-    const fillCol = isForeground ? '#0B1536' : '#1E3A8A';
-    const rimCol = isForeground ? '#3B82F6' : '#60A5FA';
-    ctx.fillStyle = fillCol;
-    ctx.strokeStyle = rimCol;
-    ctx.lineWidth = 3;
-
-    // Swept-back Majin quills
-    ctx.beginPath();
-    ctx.moveTo(-10, -56);
-    ctx.lineTo(-48, -68);
-    ctx.lineTo(-28, -46);
-    ctx.lineTo(-56, -38);
-    ctx.lineTo(-26, -24);
-    ctx.lineTo(-48, -12);
-    ctx.lineTo(-8, -14);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-
-    // Torso & Shoulders
-    ctx.beginPath();
-    ctx.roundRect(-24, -14, 48, 76, 16);
-    ctx.fill();
-    ctx.stroke();
-
-    // Majin Head & Pointed Ears
-    ctx.beginPath();
-    ctx.moveTo(-16, -58);
-    ctx.lineTo(-22, -82);
-    ctx.lineTo(-4, -64);
-    ctx.lineTo(10, -64);
-    ctx.lineTo(22, -82);
-    ctx.lineTo(20, -56);
-    ctx.arc(2, -38, 26, -0.3, Math.PI + 0.3);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-
-    // Iconic Majin M-brow, crescent eyes & wide cheek-to-cheek grin
-    ctx.fillStyle = '#040717';
-    ctx.beginPath();
-    ctx.arc(-6, -40, 5, Math.PI, 0);
-    ctx.arc(12, -40, 5, Math.PI, 0);
-    ctx.fill();
-
-    ctx.strokeStyle = rimCol;
-    ctx.lineWidth = 2.2;
-    ctx.beginPath();
-    ctx.moveTo(-12, -28);
-    ctx.quadraticCurveTo(3, -16, 18, -28);
-    ctx.quadraticCurveTo(12, -14, 3, -14);
-    ctx.quadraticCurveTo(-6, -14, -12, -28);
-    ctx.stroke();
-
+    ctx.drawImage(bmp, -68, -92);
     ctx.restore();
   };
 
   if (layer === 'back') {
     const backPositions = [165, 355, 640, 925, 1115];
-    backPositions.forEach((bx, idx) => {
-      const parallaxX = bx - cameraOffsetX * 0.45;
+    for (let idx = 0; idx < backPositions.length; idx++) {
+      const parallaxX = backPositions[idx] - cameraOffsetX * 0.45;
       const by = h * 0.56 + (idx % 2 === 0 ? bopY : bopY * 0.7);
       drawSculptedMajinBopper(parallaxX, by, 0.92, false, idx >= 3);
-    });
+    }
   } else {
     // Foreground zIndex 1000 & 1001: majin FG2 (left) and majin FG1 (right)
     drawSculptedMajinBopper(
@@ -827,9 +2402,10 @@ export function drawMajinForestBoppers(
       true
     );
   }
-
-  ctx.restore();
 }
+
+let cachedPixelSkyAndMoon: HTMLCanvasElement | null = null;
+let cachedPixelCheckerGround: HTMLCanvasElement | null = null;
 
 // Draw 16-bit Sega Genesis Green Hill Zone pixel stage for You Can't Run's iconic mid-song switch
 export function drawPixelGenesisStage(
@@ -838,28 +2414,81 @@ export function drawPixelGenesisStage(
   h: number,
   timeMs: number
 ) {
-  ctx.save();
-  // Deep crimson-indigo 16-bit sky with Genesis horizontal scan-band gradient
-  const skyBands = [
-    '#120217',
-    '#1F0421',
-    '#330624',
-    '#4D0824',
-    '#6B0B24',
-    '#8C1127',
-    '#AB162B',
-  ];
-  const bandH = Math.ceil((h * 0.72) / skyBands.length);
-  skyBands.forEach((col, idx) => {
-    ctx.fillStyle = col;
-    ctx.fillRect(0, idx * bandH, w, bandH + 2);
-  });
+  const greenHillImg = getSpriteSheet('/sprites/GreenHill.png');
+  if (greenHillImg) {
+    ctx.save();
+    const prevSmooth = ctx.imageSmoothingEnabled;
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(greenHillImg, 0, 0, w, h);
+    ctx.imageSmoothingEnabled = prevSmooth;
+    ctx.restore();
+    return;
+  }
 
-  // Glowing 16-bit pixel blood moon in upper center
-  ctx.fillStyle = '#EF4444';
-  ctx.fillRect(Math.floor(w * 0.5 - 44), 56, 88, 88);
-  ctx.fillStyle = '#FCA5A5';
-  ctx.fillRect(Math.floor(w * 0.5 - 32), 68, 64, 64);
+  ctx.save();
+  const groundY = Math.floor(h * 0.72);
+
+  if (typeof document !== 'undefined') {
+    if (!cachedPixelSkyAndMoon) {
+      const skyCanv = document.createElement('canvas');
+      skyCanv.width = w;
+      skyCanv.height = h;
+      const sctx = skyCanv.getContext('2d')!;
+      const skyBands = [
+        '#120217',
+        '#1F0421',
+        '#330624',
+        '#4D0824',
+        '#6B0B24',
+        '#8C1127',
+        '#AB162B',
+      ];
+      const bandH = Math.ceil((h * 0.72) / skyBands.length);
+      skyBands.forEach((col, idx) => {
+        sctx.fillStyle = col;
+        sctx.fillRect(0, idx * bandH, w, bandH + 2);
+      });
+      sctx.fillStyle = '#EF4444';
+      sctx.fillRect(Math.floor(w * 0.5 - 44), 56, 88, 88);
+      sctx.fillStyle = '#FCA5A5';
+      sctx.fillRect(Math.floor(w * 0.5 - 32), 68, 64, 64);
+      cachedPixelSkyAndMoon = skyCanv;
+    }
+
+    if (!cachedPixelCheckerGround) {
+      const gCanv = document.createElement('canvas');
+      gCanv.width = w;
+      gCanv.height = h;
+      const gctx = gCanv.getContext('2d')!;
+      const tileSize = 28;
+      for (let y = groundY; y < h; y += tileSize) {
+        for (let x = 0; x < w; x += tileSize) {
+          const col = Math.floor(x / tileSize);
+          const row = Math.floor((y - groundY) / tileSize);
+          const isLight = (col + row) % 2 === 0;
+          gctx.fillStyle = isLight ? '#6E351B' : '#3D1A0B';
+          gctx.fillRect(x, y, tileSize, tileSize);
+          gctx.fillStyle = isLight ? '#8C4625' : '#4F2310';
+          gctx.fillRect(x + 2, y + 2, tileSize - 6, 4);
+          gctx.fillRect(x + 2, y + 2, 4, tileSize - 6);
+        }
+      }
+      gctx.fillStyle = '#EF4444';
+      gctx.fillRect(0, groundY - 16, w, 6);
+      gctx.fillStyle = '#DC2626';
+      gctx.fillRect(0, groundY - 10, w, 10);
+      gctx.fillStyle = '#991B1B';
+      for (let x = 0; x < w; x += 24) {
+        gctx.fillRect(x, groundY, 14, 10);
+        gctx.fillRect(x + 4, groundY + 10, 6, 6);
+      }
+      cachedPixelCheckerGround = gCanv;
+    }
+  }
+
+  if (cachedPixelSkyAndMoon) {
+    ctx.drawImage(cachedPixelSkyAndMoon, 0, 0, w, h);
+  }
 
   // Parallax scrolling pixel clouds & jagged Genesis mountains
   const scrollFar = Math.floor((timeMs * 0.025) % 240);
@@ -891,43 +2520,18 @@ export function drawPixelGenesisStage(
     ctx.fillRect(x + 28, h * 0.52 + wave, 12, 28);
     ctx.fillStyle = '#FCA5A5';
     ctx.fillRect(x + 12, h * 0.48 + ((wave + 16) % 32), 6, 14);
-    // Waterfall base splash
     ctx.fillRect(x - 6, h * 0.72 - 18, 60, 6);
   }
 
-  // Classic Sega Genesis 3-Tone Beveled Brown Checkerboard Ground
-  const groundY = Math.floor(h * 0.72);
-  const tileSize = 28;
-  for (let y = groundY; y < h; y += tileSize) {
-    for (let x = 0; x < w; x += tileSize) {
-      const col = Math.floor(x / tileSize);
-      const row = Math.floor((y - groundY) / tileSize);
-      const isLight = (col + row) % 2 === 0;
-      ctx.fillStyle = isLight ? '#6E351B' : '#3D1A0B';
-      ctx.fillRect(x, y, tileSize, tileSize);
-      // Pixel bevel highlight & shadow inside each checkerboard tile
-      ctx.fillStyle = isLight ? '#8C4625' : '#4F2310';
-      ctx.fillRect(x + 2, y + 2, tileSize - 6, 4);
-      ctx.fillRect(x + 2, y + 2, 4, tileSize - 6);
-    }
-  }
-
-  // Corrupted Crimson Grass Top Strip with pixel overhangs
-  ctx.fillStyle = '#EF4444';
-  ctx.fillRect(0, groundY - 16, w, 6);
-  ctx.fillStyle = '#DC2626';
-  ctx.fillRect(0, groundY - 10, w, 10);
-  ctx.fillStyle = '#991B1B';
-  for (let x = 0; x < w; x += 24) {
-    ctx.fillRect(x, groundY, 14, 10);
-    ctx.fillRect(x + 4, groundY + 10, 6, 6);
+  if (cachedPixelCheckerGround) {
+    ctx.drawImage(cachedPixelCheckerGround, 0, 0, w, h);
   }
 
   ctx.restore();
 }
 
 // Draw High-Definition Girlfriend on the FNF Speaker Box bopping to the BPM
-// Uses gf-encore (characters/Main2GF, scale 0.9, DanceLeft/DanceRight at 20fps) on all Encore songs!
+// Applied to every song except Endless and Endless OG!
 export function drawSpeakerGirlfriend(
   ctx: CanvasRenderingContext2D,
   cx: number,
@@ -935,58 +2539,55 @@ export function drawSpeakerGirlfriend(
   bpm: number,
   timeMs: number,
   stageTheme: StageThemeId,
-  isEncore = false
+  _isEncore = false
 ) {
   const beatPeriod = 60000 / bpm;
 
-  if (isEncore) {
-    const gfEncoreSheet = getSpriteSheet('/sprites/Main2GF.png');
-    if (gfEncoreSheet) {
-      ctx.save();
-      ctx.translate(cx, cy);
+  const gfSpeakerSheet = getSpriteSheet('/sprites/Main2GF.png');
+  if (gfSpeakerSheet) {
+    ctx.save();
+    ctx.translate(cx, cy);
 
-      // Ground shadow under Speaker Box
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
-      ctx.beginPath();
-      ctx.ellipse(0, 44, 138, 18, 0, 0, Math.PI * 2);
-      ctx.fill();
+    // Ground shadow under Speaker Box
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+    ctx.beginPath();
+    ctx.ellipse(0, 46, 148, 18, 0, 0, Math.PI * 2);
+    ctx.fill();
 
-      // danceEvery = 1 beat: even beats play danceLeft (offsets [-102, -109]), odd beats play danceRight (offsets [-106, -109]) at 20fps
-      const beatCount = Math.floor(Math.max(0, timeMs) / beatPeriod);
-      const beatLocalMs = Math.max(0, timeMs) % beatPeriod;
-      const isDanceRight = beatCount % 2 === 1;
-      const frames = isDanceRight
-        ? GF_ENCORE_DANCE_RIGHT_FRAMES
-        : GF_ENCORE_DANCE_LEFT_FRAMES;
-      const frameIdx = Math.min(
-        frames.length - 1,
-        Math.floor(beatLocalMs / (1000 / 20))
-      );
-      const f = frames[frameIdx];
+    // danceEvery = 1 beat: even beats play danceLeft (frames 0..14), odd beats play danceRight (frames 15..29) at 24fps
+    const beatCount = Math.floor(Math.max(0, timeMs) / beatPeriod);
+    const beatLocalMs = Math.max(0, timeMs) % beatPeriod;
+    const isDanceRight = beatCount % 2 === 1;
+    const frames = isDanceRight
+      ? GF_SPEAKER_DANCE_RIGHT_FRAMES
+      : GF_SPEAKER_DANCE_LEFT_FRAMES;
+    const frameIdx = Math.min(
+      frames.length - 1,
+      Math.floor(beatLocalMs / (1000 / 24))
+    );
+    const f = frames[frameIdx];
 
-      // scale = 0.9 in gf-encore.json (scaled to our 1280x720 logical stage coordinates)
-      const scale = 0.34 * 0.9;
-      const animOffsetX = isDanceRight ? -106 : -102;
-      const animOffsetY = -109;
-      const drawW = f.w * scale;
-      const drawH = f.h * scale;
-      const drawX = -drawW * 0.5 - (animOffsetX + 104 + f.fx) * scale;
-      const drawY = 52 - 583 * scale - (animOffsetY + 109 + f.fy) * scale;
+    // Full 703x648 GF + Speaker Box frame scaled to our 1280x720 logical stage coordinates
+    const scale = 0.42;
+    const drawW = f.w * scale;
+    const drawH = f.h * scale;
+    const drawX = (-351.5 - f.fx) * scale;
+    const drawY = 52 - (648 + f.fy) * scale;
 
-      ctx.drawImage(
-        gfEncoreSheet,
-        f.x,
-        f.y,
-        f.w,
-        f.h,
-        drawX,
-        drawY,
-        drawW,
-        drawH
-      );
-      ctx.restore();
-      return;
-    }
+    drawCharSubTexture(
+      ctx,
+      gfSpeakerSheet,
+      f.x,
+      f.y,
+      f.w,
+      f.h,
+      drawX,
+      drawY,
+      drawW,
+      drawH
+    );
+    ctx.restore();
+    return;
   }
 
   ctx.save();
@@ -1258,12 +2859,8 @@ function drawTooSlowSonicExeSprite(
   const sonicExeSheet = getSonicExeSheet();
   if (sonicExeSheet) {
     ctx.save();
-    // Larger, sharper scale so Sonic.exe's sprite details pop clearly on stage
-    const scale = 0.38;
-
-    // Subtle dark-crimson rim separation so Sonic.exe's dark quills & outlines stand out crisply
-    ctx.shadowColor = 'rgba(220, 38, 38, 0.26)';
-    ctx.shadowBlur = 8;
+    // Scale matched to video framing alongside GF (0.42) and Boyfriend (0.44)
+    const scale = 0.405;
 
     if (pose === 'laugh') {
       const frameIdx =
@@ -1280,7 +2877,8 @@ function drawTooSlowSonicExeSprite(
       ctx.scale(1 - laughBounce * 0.004, 1 + laughBounce * 0.006);
       ctx.translate(0, -82);
 
-      ctx.drawImage(
+      drawCharSubTexture(
+        ctx,
         sonicExeSheet,
         f.x,
         f.y,
@@ -1310,92 +2908,27 @@ function drawTooSlowSonicExeSprite(
     const anim = SONIC_EXE_TOO_SLOW_ANIMS[poseKey];
     let frameIdx = 0;
     if (poseKey === 'idle') {
-      // Rhythmic 11-frame idle animation synced to every beat
-      const beatPhase = (((timeMs % beatPeriod) + beatPeriod) % beatPeriod) / beatPeriod;
+      // Authentic 24fps 11-frame idle animation restarted on every beat (danceEvery = 1)
+      const beatLocalMs = ((timeMs % beatPeriod) + beatPeriod) % beatPeriod;
       frameIdx = Math.min(
         anim.frames.length - 1,
-        Math.floor(beatPhase * anim.frames.length)
+        Math.floor(beatLocalMs / (1000 / 24))
       );
     } else {
-      // Play 24fps animation from frame 0 on note hit so he visibly moves into the pose,
-      // then loop the subtle head-bounce settle frames (3..8) while holding a sustain note
       const rawFrame = Math.floor(elapsedPoseMs / (1000 / 24));
-      if (rawFrame < anim.frames.length) {
-        frameIdx = rawFrame;
-      } else {
-        frameIdx = 3 + ((rawFrame - anim.frames.length) % 6);
-      }
+      frameIdx = Math.min(anim.frames.length - 1, rawFrame);
     }
 
     const f = anim.frames[frameIdx];
 
-    // Smooth entry slide/lunge tween over the first 95ms so he visibly moves into the note position
-    const moveInT = poseKey === 'idle' ? 1 : Math.min(1, elapsedPoseMs / 95);
-    const easeOutCubic = 1 - Math.pow(1 - moveInT, 3);
-    const unreached = 1 - easeOutCubic;
-
-    // Damped spring head-bounce when arriving at a note pose + rhythmic beat head-bob in idle
-    const beatPhase = (((timeMs % beatPeriod) + beatPeriod) % beatPeriod) / beatPeriod;
-    const idleHeadBop =
-      poseKey === 'idle'
-        ? Math.sin(beatPhase * Math.PI) * 7.5
-        : 0;
-    const noteHeadBounce =
-      poseKey !== 'idle'
-        ? Math.sin(elapsedPoseMs * 0.052) *
-          Math.exp(-elapsedPoseMs * 0.0042) *
-          11
-        : 0;
-
-    let slideX = 0;
-    let slideY = 0;
-    let squashX = 1;
-    let squashY = 1;
-    let tiltRad = 0;
-
-    if (poseKey === 'left') {
-      slideX = 34 * unreached - noteHeadBounce * 0.35;
-      squashX = 1 + 0.06 * unreached;
-      squashY = 1 - 0.04 * unreached + noteHeadBounce * 0.0045;
-      tiltRad = -0.05 * (1 - unreached * 0.5) + noteHeadBounce * 0.003;
-    } else if (poseKey === 'right') {
-      slideX = -34 * unreached + noteHeadBounce * 0.35;
-      squashX = 1 + 0.06 * unreached;
-      squashY = 1 - 0.04 * unreached + noteHeadBounce * 0.0045;
-      tiltRad = 0.05 * (1 - unreached * 0.5) - noteHeadBounce * 0.003;
-    } else if (poseKey === 'up') {
-      slideY = 30 * unreached - Math.abs(noteHeadBounce) * 0.45;
-      squashX = 1 - 0.05 * (1 - unreached * 0.4);
-      squashY = 1 + 0.07 * (1 - unreached * 0.4) + noteHeadBounce * 0.005;
-      tiltRad = -0.025 * easeOutCubic;
-    } else if (poseKey === 'down') {
-      slideY = -26 * unreached + Math.abs(noteHeadBounce) * 0.45;
-      squashX = 1 + 0.06 * easeOutCubic;
-      squashY = 1 - 0.06 * easeOutCubic - noteHeadBounce * 0.005;
-      tiltRad = 0.03 * easeOutCubic;
-    } else {
-      // Idle rhythmic head & upper-body bounce anchored at feet
-      squashX = 1 + idleHeadBop * 0.0035;
-      squashY = 1 - idleHeadBop * 0.0055;
-      tiltRad = Math.cos(beatPhase * Math.PI) * 0.018;
-    }
-
-    // Pivot at Sonic.exe's feet (0, 82) so his shoes stay planted while his body & head move and bounce
-    ctx.translate(slideX, 82 + slideY);
-    ctx.rotate(tiltRad);
-    ctx.scale(squashX, squashY);
-    ctx.translate(0, -82);
-
+    // Exact V-Slice / Psych Engine Sparrow v2 coordinates and offsets from sonicexe.json
     const drawW = f.w * scale;
     const drawH = f.h * scale;
-    // Exact Psych Engine coordinate formula keeping feet anchored at y = 82
-    const drawX = (-235 - anim.offset[0] - f.fx) * scale;
-    const drawY =
-      82 -
-      (748 + anim.offset[1] + f.fy) * scale +
-      (poseKey === 'idle' ? idleHeadBop * 0.45 : -noteHeadBounce * 0.55);
+    const drawX = (-279 - anim.offset[0] - f.fx) * scale;
+    const drawY = 82 - (748 + anim.offset[1] + f.fy) * scale;
 
-    ctx.drawImage(
+    drawCharSubTexture(
+      ctx,
       sonicExeSheet,
       f.x,
       f.y,
@@ -1406,41 +2939,6 @@ function drawTooSlowSonicExeSprite(
       drawW,
       drawH
     );
-
-    // Articulated upper-head/quills micro-bounce pass (top 48% of sprite) for extra lively FNF head bounce
-    const headClipRatio = 0.48;
-    const headExtraBounceY =
-      poseKey === 'idle'
-        ? Math.sin((beatPhase - 0.12) * Math.PI) * 3.2
-        : noteHeadBounce * 0.42;
-    const headExtraTilt =
-      poseKey === 'idle'
-        ? Math.sin(beatPhase * Math.PI * 2) * 0.014
-        : noteHeadBounce * 0.0028;
-
-    if (Math.abs(headExtraBounceY) > 0.4) {
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(drawX - 24, drawY - 24, drawW + 48, drawH * headClipRatio + 24);
-      ctx.clip();
-      const headPivotX = drawX + drawW * 0.5;
-      const headPivotY = drawY + drawH * headClipRatio;
-      ctx.translate(headPivotX, headPivotY + headExtraBounceY);
-      ctx.rotate(headExtraTilt);
-      ctx.translate(-headPivotX, -headPivotY);
-      ctx.drawImage(
-        sonicExeSheet,
-        f.x,
-        f.y,
-        f.w,
-        f.h,
-        drawX,
-        drawY,
-        drawW,
-        drawH
-      );
-      ctx.restore();
-    }
 
     ctx.restore();
     return;
@@ -1682,13 +3180,10 @@ function drawTooSlowSonicExeSprite(
 
     // Glowing red pupils
     ctx.fillStyle = '#EF4444';
-    ctx.shadowColor = '#EF4444';
-    ctx.shadowBlur = 10;
     ctx.beginPath();
     ctx.arc(0, -12, 3.8, 0, Math.PI * 2);
     ctx.arc(20, -16, 3.8, 0, Math.PI * 2);
     ctx.fill();
-    ctx.shadowBlur = 0;
 
     // Massive unhinged peach jaw stretching down to the right
     ctx.fillStyle = peachSkin;
@@ -1737,13 +3232,10 @@ function drawTooSlowSonicExeSprite(
 
     // Two bright crimson eyes inside socket
     ctx.fillStyle = '#EF4444';
-    ctx.shadowColor = '#EF4444';
-    ctx.shadowBlur = 10;
     ctx.beginPath();
     ctx.ellipse(4, -2, 4.5, 3, 0.2, 0, Math.PI * 2);
     ctx.ellipse(20, 0, 4, 2.8, -0.2, 0, Math.PI * 2);
     ctx.fill();
-    ctx.shadowBlur = 0;
 
     // Screaming sideways stretched peach muzzle & mouth
     ctx.fillStyle = peachSkin;
@@ -1787,12 +3279,9 @@ function drawTooSlowSonicExeSprite(
 
     // Glowing red pupil
     ctx.fillStyle = '#EF4444';
-    ctx.shadowColor = '#EF4444';
-    ctx.shadowBlur = 12;
     ctx.beginPath();
     ctx.arc(14, -8, 4.2, 0, Math.PI * 2);
     ctx.fill();
-    ctx.shadowBlur = 0;
 
     // Tall roaring peach muzzle & lower jaw
     ctx.fillStyle = peachSkin;
@@ -1893,12 +3382,9 @@ function drawTooSlowSonicExeSprite(
 
     // Glowing red pinpoint pupil
     ctx.fillStyle = '#EF4444';
-    ctx.shadowColor = '#EF4444';
-    ctx.shadowBlur = 10;
     ctx.beginPath();
     ctx.arc(14, -4, 3.5, 0, Math.PI * 2);
     ctx.fill();
-    ctx.shadowBlur = 0;
 
     // Peach muzzle
     ctx.fillStyle = peachSkin;
@@ -2045,6 +3531,24 @@ function drawTooSlowSonicExeSprite(
   ctx.restore();
 }
 
+const XENOPHANES_BEAST_ANIMS = {
+  idle: { offset: [0, 0], frames: [{ x: 2456, y: 0, w: 541, h: 914, fx: -18, fy: -23 }, { x: 2456, y: 0, w: 541, h: 914, fx: -18, fy: -23 }, { x: 2997, y: 0, w: 537, h: 909, fx: -18, fy: -28 }, { x: 2997, y: 0, w: 537, h: 909, fx: -18, fy: -28 }, { x: 3534, y: 0, w: 535, h: 914, fx: -17, fy: -24 }, { x: 3534, y: 0, w: 535, h: 914, fx: -17, fy: -24 }, { x: 4069, y: 0, w: 534, h: 918, fx: -15, fy: -20 }, { x: 4069, y: 0, w: 534, h: 918, fx: -15, fy: -20 }, { x: 4603, y: 0, w: 547, h: 922, fx: 0, fy: -17 }, { x: 4603, y: 0, w: 547, h: 922, fx: 0, fy: -17 }, { x: 5150, y: 0, w: 538, h: 939, fx: -7, fy: 0 }, { x: 5150, y: 0, w: 538, h: 939, fx: -7, fy: 0 }, { x: 5688, y: 0, w: 540, h: 940, fx: -5, fy: 0 }, { x: 5688, y: 0, w: 540, h: 940, fx: -5, fy: 0 }, { x: 6228, y: 0, w: 540, h: 940, fx: -5, fy: 0 }, { x: 6228, y: 0, w: 540, h: 940, fx: -5, fy: 0 }] },
+  left: { offset: [180, -95], frames: [{ x: 1057, y: 940, w: 865, h: 852, fx: 0, fy: -1 }, { x: 1057, y: 940, w: 865, h: 852, fx: 0, fy: -1 }, { x: 1922, y: 940, w: 851, h: 853, fx: -25, fy: 0 }, { x: 1922, y: 940, w: 851, h: 853, fx: -25, fy: 0 }, { x: 2773, y: 940, w: 815, h: 828, fx: -101, fy: -25 }, { x: 2773, y: 940, w: 815, h: 828, fx: -101, fy: -25 }, { x: 3588, y: 940, w: 836, h: 838, fx: -80, fy: -15 }, { x: 3588, y: 940, w: 836, h: 838, fx: -80, fy: -15 }] },
+  down: { offset: [20, -95], frames: [{ x: 0, y: 0, w: 615, h: 802, fx: 0, fy: -49 }, { x: 0, y: 0, w: 615, h: 802, fx: 0, fy: -49 }, { x: 615, y: 0, w: 615, h: 854, fx: 0, fy: 0 }, { x: 615, y: 0, w: 615, h: 854, fx: 0, fy: 0 }, { x: 1230, y: 0, w: 615, h: 839, fx: 0, fy: -14 }, { x: 1230, y: 0, w: 615, h: 839, fx: 0, fy: -14 }, { x: 1845, y: 0, w: 611, h: 840, fx: -4, fy: -14 }, { x: 1845, y: 0, w: 611, h: 840, fx: -4, fy: -14 }] },
+  up: { offset: [50, 80], frames: [{ x: 7391, y: 940, w: 625, h: 1020, fx: 0, fy: 0 }, { x: 7391, y: 940, w: 625, h: 1020, fx: 0, fy: 0 }, { x: 0, y: 1960, w: 625, h: 1006, fx: 0, fy: -13 }, { x: 0, y: 1960, w: 625, h: 1006, fx: 0, fy: -13 }, { x: 625, y: 1960, w: 625, h: 961, fx: 0, fy: -55 }, { x: 625, y: 1960, w: 625, h: 961, fx: 0, fy: -55 }, { x: 1250, y: 1960, w: 625, h: 968, fx: 0, fy: -47 }, { x: 1250, y: 1960, w: 625, h: 968, fx: 0, fy: -47 }] },
+  right: { offset: [-160, -60], frames: [{ x: 4424, y: 940, w: 753, h: 872, fx: -3, fy: -5 }, { x: 4424, y: 940, w: 753, h: 872, fx: -3, fy: -5 }, { x: 5177, y: 940, w: 748, h: 874, fx: -2, fy: -3 }, { x: 5177, y: 940, w: 748, h: 874, fx: -2, fy: -3 }, { x: 5925, y: 940, w: 733, h: 871, fx: 0, fy: -6 }, { x: 5925, y: 940, w: 733, h: 871, fx: 0, fy: -6 }, { x: 6658, y: 940, w: 733, h: 877, fx: 0, fy: 0 }, { x: 6658, y: 940, w: 733, h: 877, fx: 0, fy: 0 }] },
+  laugh: { offset: [-120, -225], frames: [{ x: 6768, y: 0, w: 567, h: 724, fx: 0, fy: 0 }, { x: 6768, y: 0, w: 567, h: 724, fx: 0, fy: 0 }, { x: 7335, y: 0, w: 547, h: 708, fx: -1, fy: -16 }, { x: 7335, y: 0, w: 547, h: 708, fx: -1, fy: -16 }, { x: 0, y: 940, w: 522, h: 690, fx: -3, fy: -34 }, { x: 0, y: 940, w: 522, h: 690, fx: -3, fy: -34 }, { x: 522, y: 940, w: 535, h: 704, fx: -3, fy: -20 }, { x: 522, y: 940, w: 535, h: 704, fx: -3, fy: -20 }] },
+} as const;
+
+const BF_PERSPECTIVE_ANIMS = {
+  idle: { offset: [-5, -20], frames: [{ x: 4716, y: 494, w: 514, h: 493, fx: 0, fy: 0 }, { x: 5230, y: 494, w: 514, h: 493, fx: 0, fy: 0 }, { x: 5744, y: 494, w: 514, h: 493, fx: 0, fy: 0 }, { x: 6258, y: 494, w: 514, h: 493, fx: 0, fy: 0 }, { x: 6772, y: 494, w: 514, h: 493, fx: 0, fy: 0 }, { x: 7286, y: 494, w: 514, h: 493, fx: 0, fy: 0 }, { x: 0, y: 988, w: 514, h: 493, fx: 0, fy: 0 }, { x: 514, y: 988, w: 514, h: 493, fx: 0, fy: 0 }, { x: 1028, y: 988, w: 514, h: 493, fx: 0, fy: 0 }, { x: 1542, y: 988, w: 514, h: 493, fx: 0, fy: 0 }, { x: 2056, y: 988, w: 514, h: 493, fx: 0, fy: 0 }, { x: 2570, y: 988, w: 514, h: 493, fx: 0, fy: 0 }, { x: 3084, y: 988, w: 514, h: 493, fx: 0, fy: 0 }, { x: 3598, y: 988, w: 514, h: 493, fx: 0, fy: 0 }] },
+  left: { offset: [48, -28], frames: [{ x: 996, y: 3785, w: 487, h: 484, fx: 0, fy: 0 }, { x: 1483, y: 3785, w: 487, h: 484, fx: 0, fy: 0 }, { x: 1970, y: 3785, w: 487, h: 484, fx: 0, fy: 0 }, { x: 2457, y: 3785, w: 487, h: 484, fx: 0, fy: 0 }, { x: 2944, y: 3785, w: 487, h: 484, fx: 0, fy: 0 }, { x: 3431, y: 3785, w: 487, h: 484, fx: 0, fy: 0 }, { x: 3918, y: 3785, w: 487, h: 484, fx: 0, fy: 0 }, { x: 4405, y: 3785, w: 487, h: 484, fx: 0, fy: 0 }] },
+  down: { offset: [30, -33], frames: [{ x: 4770, y: 2714, w: 498, h: 479, fx: 0, fy: 0 }, { x: 5268, y: 2714, w: 498, h: 479, fx: 0, fy: 0 }, { x: 5766, y: 2714, w: 498, h: 479, fx: 0, fy: 0 }, { x: 6264, y: 2714, w: 498, h: 479, fx: 0, fy: 0 }, { x: 6762, y: 2714, w: 498, h: 479, fx: 0, fy: 0 }, { x: 7260, y: 2714, w: 498, h: 479, fx: 0, fy: 0 }, { x: 0, y: 3306, w: 498, h: 479, fx: 0, fy: 0 }, { x: 498, y: 3306, w: 498, h: 479, fx: 0, fy: 0 }] },
+  up: { offset: [-69, 37], frames: [{ x: 1569, y: 5283, w: 461, h: 552, fx: 0, fy: 0 }, { x: 2030, y: 5283, w: 461, h: 552, fx: 0, fy: 0 }, { x: 2491, y: 5283, w: 461, h: 552, fx: 0, fy: 0 }, { x: 2952, y: 5283, w: 461, h: 552, fx: 0, fy: 0 }, { x: 3413, y: 5283, w: 461, h: 552, fx: 0, fy: 0 }, { x: 3874, y: 5283, w: 461, h: 552, fx: 0, fy: 0 }, { x: 4335, y: 5283, w: 461, h: 552, fx: 0, fy: 0 }, { x: 4796, y: 5283, w: 461, h: 552, fx: 0, fy: 0 }] },
+  right: { offset: [-23, -5], frames: [{ x: 4870, y: 4269, w: 523, h: 507, fx: 0, fy: 0 }, { x: 5393, y: 4269, w: 523, h: 507, fx: 0, fy: 0 }, { x: 5916, y: 4269, w: 523, h: 507, fx: 0, fy: 0 }, { x: 6439, y: 4269, w: 523, h: 507, fx: 0, fy: 0 }, { x: 6962, y: 4269, w: 523, h: 507, fx: 0, fy: 0 }, { x: 7485, y: 4269, w: 523, h: 507, fx: 0, fy: 0 }, { x: 0, y: 4776, w: 523, h: 507, fx: 0, fy: 0 }, { x: 523, y: 4776, w: 523, h: 507, fx: 0, fy: 0 }] },
+  miss: { offset: [35, -19], frames: [{ x: 0, y: 0, w: 524, h: 494, fx: 0, fy: 0 }, { x: 524, y: 0, w: 524, h: 494, fx: 0, fy: 0 }, { x: 1048, y: 0, w: 524, h: 494, fx: 0, fy: 0 }, { x: 1572, y: 0, w: 524, h: 494, fx: 0, fy: 0 }, { x: 2096, y: 0, w: 524, h: 494, fx: 0, fy: 0 }, { x: 2620, y: 0, w: 524, h: 494, fx: 0, fy: 0 }, { x: 3144, y: 0, w: 524, h: 494, fx: 0, fy: 0 }, { x: 3668, y: 0, w: 524, h: 494, fx: 0, fy: 0 }] },
+} as const;
+
 // Draw Opponent Character Sprite (Sonic.exe, YCR, Pixel, Xenophanes, Souls, Majin Sonic)
 export function drawOpponentSprite(
   ctx: CanvasRenderingContext2D,
@@ -2105,7 +3609,7 @@ export function drawOpponentSprite(
       const drawY =
         82 - 412 * scale - (anim.offset[1] + f.fy) * scale * 0.45 + headBounce * 0.4;
 
-      ctx.drawImage(tailsSheet, f.x, f.y, f.w, f.h, drawX, drawY, drawW, drawH);
+      drawCharSubTexture(ctx, tailsSheet, f.x, f.y, f.w, f.h, drawX, drawY, drawW, drawH);
       ctx.restore();
       return;
     }
@@ -2151,7 +3655,7 @@ export function drawOpponentSprite(
       const drawY =
         82 - 465 * scale - (anim.offset[1] + f.fy) * scale * 0.35 + headBounce * 0.4;
 
-      ctx.drawImage(knuxSheet, f.x, f.y, f.w, f.h, drawX, drawY, drawW, drawH);
+      drawCharSubTexture(ctx, knuxSheet, f.x, f.y, f.w, f.h, drawX, drawY, drawW, drawH);
       ctx.restore();
       return;
     }
@@ -2200,30 +3704,559 @@ export function drawOpponentSprite(
       const drawY =
         82 - 560 * scale - (anim.offset[1] + f.fy) * scale * 0.35 + headBounce * 0.4;
 
-      ctx.drawImage(eggSheet, f.x, f.y, f.w, f.h, drawX, drawY, drawW, drawH);
+      drawCharSubTexture(ctx, eggSheet, f.x, f.y, f.w, f.h, drawX, drawY, drawW, drawH);
       ctx.restore();
       return;
     }
   }
 
-  // Use the exact 5-pose Sonic.exe sprites for Too Slow & You Can't Run (with enraged YCR blood/aura accents for ycr-exe)!
-  if (character === 'sonic-exe' || character === 'ycr-exe') {
+  // 4. Endless (OG): Majin Sonic Variation 2 (majin_new.json: assetPath "characters/MajinOG", scale 1.4, 32fps sing / 24fps idle)
+  if (character === 'majin-og') {
+    const majinOgSheet = getSpriteSheet('/sprites/MajinOG.png');
+    if (majinOgSheet) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+      ctx.beginPath();
+      ctx.ellipse(0, 82, 74, 16, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      const animKey: 'idle' | 'left' | 'down' | 'up' | 'right' =
+        pose === 'left' || pose === 'down' || pose === 'up' || pose === 'right'
+          ? pose
+          : 'idle';
+      const anim = MAJIN_OG_ANIMS[animKey];
+      const frameIdx =
+        animKey === 'idle'
+          ? Math.floor(beatPhase * anim.frames.length) % anim.frames.length
+          : Math.min(
+              anim.frames.length - 1,
+              Math.floor(elapsedPoseMs / (1000 / anim.fps))
+            );
+      const f = anim.frames[frameIdx];
+
+      const headBounce =
+        animKey === 'idle'
+          ? Math.sin(beatPhase * Math.PI) * 6
+          : Math.sin(elapsedPoseMs * 0.055) * Math.exp(-elapsedPoseMs * 0.0045) * 9;
+      const moveIn = animKey === 'idle' ? 1 : Math.min(1, elapsedPoseMs / 85);
+      const easeOut = 1 - Math.pow(1 - moveIn, 3);
+      const slideX =
+        animKey === 'left'
+          ? 24 * (1 - easeOut)
+          : animKey === 'right'
+            ? -24 * (1 - easeOut)
+            : 0;
+      const slideY =
+        animKey === 'up'
+          ? 20 * (1 - easeOut)
+          : animKey === 'down'
+            ? -16 * (1 - easeOut)
+            : 0;
+
+      // Scale 1.4 from majin_new.json with exact Psych Engine foot-anchored offsets
+      const scale = 0.36 * 1.4;
+      const drawW = f.w * scale;
+      const drawH = f.h * scale;
+      const drawX = (-178 - anim.offset[0]) * scale + slideX;
+      const drawY =
+        82 - (440 + anim.offset[1]) * scale + slideY + headBounce * 0.45;
+
+      drawCharSubTexture(ctx, majinOgSheet, f.x, f.y, f.w, f.h, drawX, drawY, drawW, drawH);
+      ctx.restore();
+      return;
+    }
+  }
+
+  // 5. Endless: Majin Sonic Variation 1 (majin.json: assetPath "characters/SonicFunAssets", scale 1.0, 24fps)
+  if (character === 'majin') {
+    const sonicFunSheet = getSpriteSheet('/sprites/SonicFunAssets.png');
+    if (sonicFunSheet) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+      ctx.beginPath();
+      ctx.ellipse(0, 82, 70, 15, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      const animKey: 'idle' | 'left' | 'down' | 'up' | 'right' =
+        pose === 'left' || pose === 'down' || pose === 'up' || pose === 'right'
+          ? pose
+          : 'idle';
+      const anim = SONIC_FUN_ANIMS[animKey];
+      const frameIdx =
+        animKey === 'idle'
+          ? Math.floor(beatPhase * anim.frames.length) % anim.frames.length
+          : Math.min(
+              anim.frames.length - 1,
+              Math.floor(elapsedPoseMs / (1000 / anim.fps))
+            );
+      const f = anim.frames[frameIdx];
+
+      const headBounce =
+        animKey === 'idle'
+          ? Math.sin(beatPhase * Math.PI) * 6
+          : Math.sin(elapsedPoseMs * 0.055) * Math.exp(-elapsedPoseMs * 0.0045) * 9;
+      const moveIn = animKey === 'idle' ? 1 : Math.min(1, elapsedPoseMs / 85);
+      const easeOut = 1 - Math.pow(1 - moveIn, 3);
+      const slideX =
+        animKey === 'left'
+          ? 24 * (1 - easeOut)
+          : animKey === 'right'
+            ? -24 * (1 - easeOut)
+            : 0;
+      const slideY =
+        animKey === 'up'
+          ? 20 * (1 - easeOut)
+          : animKey === 'down'
+            ? -16 * (1 - easeOut)
+            : 0;
+
+      // Exact Psych Engine foot-anchored offsets for SonicFunAssets (bot - off_y = 494, cx - off_x = 258)
+      const scale = 0.36;
+      const drawW = f.w * scale;
+      const drawH = f.h * scale;
+      const drawX = (-258 - anim.offset[0]) * scale + slideX;
+      const drawY =
+        82 - (494 + anim.offset[1]) * scale + slideY + headBounce * 0.45;
+
+      drawCharSubTexture(ctx, sonicFunSheet, f.x, f.y, f.w, f.h, drawX, drawY, drawW, drawH);
+      ctx.restore();
+      return;
+    }
+  }
+
+  // Use the authentic Sonic_FakerForm.png sprite sheet for Fake Sonic (sonicexefake) in Too Slow Encore!
+  if (character === 'sonicexefake') {
+    const fakerSheet = getSpriteSheet('/sprites/Sonic_FakerForm.png');
+    if (fakerSheet) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+      ctx.beginPath();
+      ctx.ellipse(0, 82, 64, 15, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      const animKey: 'idle' | 'left' | 'down' | 'up' | 'right' | 'revealed' =
+        pose === 'gotcha' || pose === 'laugh'
+          ? 'revealed'
+          : pose === 'left' || pose === 'down' || pose === 'up' || pose === 'right'
+            ? pose
+            : 'idle';
+      const anim = SONIC_FAKER_ANIMS[animKey];
+      const beatLocalMs = ((timeMs % beatPeriod) + beatPeriod) % beatPeriod;
+      const frameIdx =
+        animKey === 'idle'
+          ? Math.min(
+              anim.frames.length - 1,
+              Math.floor(beatLocalMs / (1000 / anim.fps))
+            )
+          : Math.min(
+              anim.frames.length - 1,
+              Math.floor(elapsedPoseMs / (1000 / anim.fps))
+            );
+      const f = anim.frames[frameIdx];
+
+      // Exact V-Slice / Psych Engine Sparrow v2 foot-locked coordinates from sonicexefake.json
+      const scale = 0.36;
+      const drawW = f.w * scale;
+      const drawH = f.h * scale;
+      const drawX = (-82.5 - anim.offset[0] - f.fx) * scale;
+      const drawY = 82 - (508 + anim.offset[1] + f.fy) * scale;
+
+      // About 0.20s before the screen goes dark at 42667ms (42467ms..42667ms),
+      // animate ONLY Fake Sonic's head twisting backwards toward you while his body stays frozen!
+      const headTwistWindowMs =
+        animKey === 'revealed'
+          ? timeMs >= 42457 && timeMs <= 42680
+            ? timeMs - 42457
+            : elapsedPoseMs >= 1124
+              ? elapsedPoseMs - 1124
+              : -1
+          : -1;
+
+      if (headTwistWindowMs >= 0) {
+        const t = Math.min(1, Math.max(0, headTwistWindowMs / 185));
+        // Smooth stepped horror snap curve
+        const snapEase =
+          t < 0.5
+            ? 2 * t * t
+            : 1 - Math.pow(-2 * t + 2, 2) * 0.5;
+        const headSrcH = 260;
+        const bodySrcH = f.h - headSrcH;
+        const headDrawH = headSrcH * scale;
+        const bodyDrawH = bodySrcH * scale;
+        const micCapSrcW = 102;
+        const micCapSrcY = 244;
+        const micCapSrcH = headSrcH - micCapSrcY;
+
+        // 1. Draw the stationary lower body (from neck y=260 down to shoes) completely still
+        drawCharSubTexture(
+          ctx,
+          fakerSheet,
+          f.x,
+          f.y + headSrcH,
+          f.w,
+          bodySrcH,
+          drawX,
+          drawY + headDrawH,
+          drawW,
+          bodyDrawH
+        );
+        // Keep the top tip of the microphone in his left hand stationary with the body
+        drawCharSubTexture(
+          ctx,
+          fakerSheet,
+          f.x,
+          f.y + micCapSrcY,
+          micCapSrcW,
+          micCapSrcH,
+          drawX,
+          drawY + micCapSrcY * scale,
+          micCapSrcW * scale,
+          micCapSrcH * scale
+        );
+
+        // 2. Draw ONLY his head (y=0..260) twisting backwards around his neck toward the viewer
+        const neckPivotX = drawX + drawW * 0.455;
+        const neckPivotY = drawY + headDrawH;
+        // Horizontal 3D turn from facing left (+1) through center toward you, twisting backwards (-0.88)
+        const rawScaleX = 1 - snapEase * 1.88;
+        const twistScaleX =
+          Math.abs(rawScaleX) < 0.28
+            ? (rawScaleX >= 0 ? 0.28 : -0.28)
+            : rawScaleX;
+        const twistScaleY = 1 + Math.sin(t * Math.PI) * 0.06;
+        // Eerie owl-like backward head-cock angle as it twists toward you
+        const twistAngle = -snapEase * 0.24 + Math.sin(t * Math.PI * 6) * 0.025;
+
+        ctx.save();
+        ctx.translate(neckPivotX, neckPivotY);
+        ctx.rotate(twistAngle);
+        ctx.scale(twistScaleX, twistScaleY);
+        ctx.translate(-neckPivotX, -neckPivotY);
+
+        // Clip out the stationary microphone cap corner so only the head rotates
+        ctx.beginPath();
+        ctx.rect(drawX - 40, drawY - 40, drawW + 80, micCapSrcY * scale + 40);
+        ctx.rect(
+          drawX + micCapSrcW * scale,
+          drawY + micCapSrcY * scale,
+          drawW - micCapSrcW * scale + 40,
+          micCapSrcH * scale + 4
+        );
+        ctx.clip();
+
+        drawCharSubTexture(
+          ctx,
+          fakerSheet,
+          f.x,
+          f.y,
+          f.w,
+          headSrcH,
+          drawX,
+          drawY,
+          drawW,
+          headDrawH
+        );
+        ctx.restore();
+
+        // 3. As his head twists toward you (t > 0.25), lock both glowing crimson-red eyes directly onto the viewer
+        if (t > 0.25) {
+          const eyeAlpha = Math.min(1, (t - 0.25) / 0.45);
+          const faceCenterX = neckPivotX + snapEase * 6;
+          const faceCenterY = neckPivotY - headDrawH * 0.36;
+          ctx.save();
+          ctx.globalAlpha = eyeAlpha;
+          ctx.translate(faceCenterX, faceCenterY);
+          ctx.rotate(-snapEase * 0.16);
+
+          // Sunken dark eye sockets facing viewer
+          ctx.fillStyle = '#050208';
+          ctx.beginPath();
+          ctx.ellipse(-9, 0, 6.5, 8.5, -0.1, 0, Math.PI * 2);
+          ctx.ellipse(8, 1, 6.5, 8.5, 0.1, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Glowing crimson pupils staring straight at you
+          ctx.shadowColor = '#FF0022';
+          ctx.shadowBlur = 10;
+          ctx.fillStyle = '#FF1A2E';
+          ctx.beginPath();
+          ctx.arc(-9, 0, 3.2, 0, Math.PI * 2);
+          ctx.arc(8, 1, 3.2, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = '#FFE4E8';
+          ctx.beginPath();
+          ctx.arc(-9, -0.5, 1.2, 0, Math.PI * 2);
+          ctx.arc(8, 0.5, 1.2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      } else {
+        drawCharSubTexture(
+          ctx,
+          fakerSheet,
+          f.x,
+          f.y,
+          f.w,
+          f.h,
+          drawX,
+          drawY,
+          drawW,
+          drawH
+        );
+      }
+      ctx.restore();
+      return;
+    }
+  }
+
+  // 6. You Can't Run Phase 1: YCR Sonic.EXE (YCR.png + YCR.xml + sonicexep2.json)
+  if (character === 'ycr-exe') {
+    const ycrSheet = getSpriteSheet('/sprites/YCR.png');
+    if (ycrSheet) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+      ctx.beginPath();
+      ctx.ellipse(0, 82, 70, 16, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      const animKey: 'idle' | 'left' | 'down' | 'up' | 'right' | 'laugh' | 'scream' =
+        pose === 'gotcha' || pose === 'scream'
+          ? 'scream'
+          : pose === 'laugh'
+            ? 'laugh'
+            : pose === 'left' || pose === 'down' || pose === 'up' || pose === 'right'
+              ? pose
+              : 'idle';
+      const anim = YCR_NORMAL_ANIMS[animKey];
+      const beatLocalMs = ((timeMs % beatPeriod) + beatPeriod) % beatPeriod;
+      const frameIdx =
+        animKey === 'idle'
+          ? Math.min(
+              anim.frames.length - 1,
+              Math.floor(beatLocalMs / (1000 / anim.fps))
+            )
+          : animKey === 'laugh'
+            ? Math.floor(elapsedPoseMs / (1000 / anim.fps)) % anim.frames.length
+            : Math.min(
+                anim.frames.length - 1,
+                Math.floor(elapsedPoseMs / (1000 / anim.fps))
+              );
+      const f = anim.frames[frameIdx];
+
+      const scale = 0.38;
+      const drawW = f.w * scale;
+      const drawH = f.h * scale;
+      const drawX = (-256 - anim.offset[0]) * scale;
+      const drawY = 82 - (671 + anim.offset[1]) * scale;
+
+      drawCharSubTexture(
+        ctx,
+        ycrSheet,
+        f.x,
+        f.y,
+        f.w,
+        f.h,
+        drawX,
+        drawY,
+        drawW,
+        drawH,
+        0.25
+      );
+      ctx.restore();
+      return;
+    }
+  }
+
+  // 7. You Can't Run Post-Pixel Enraged Phase: YCR_Mad Sonic.EXE (YCR_Mad.png + YCR_Mad.xml + sonicexep2mad.json)
+  if (character === 'ycr-mad') {
+    const ycrMadSheet = getSpriteSheet('/sprites/YCR_Mad.png');
+    if (ycrMadSheet) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.58)';
+      ctx.beginPath();
+      ctx.ellipse(0, 82, 74, 16, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      const animKey: 'idle' | 'left' | 'down' | 'up' | 'right' | 'laugh' | 'scream' | 'die' =
+        pose === 'gotcha'
+          ? 'die'
+          : pose === 'scream'
+            ? 'scream'
+            : pose === 'laugh'
+              ? 'laugh'
+              : pose === 'left' || pose === 'down' || pose === 'up' || pose === 'right'
+                ? pose
+                : 'idle';
+      const anim = YCR_MAD_ANIMS[animKey];
+      const beatLocalMs = ((timeMs % beatPeriod) + beatPeriod) % beatPeriod;
+      const frameIdx =
+        animKey === 'idle'
+          ? Math.min(
+              anim.frames.length - 1,
+              Math.floor(beatLocalMs / (1000 / anim.fps))
+            )
+          : animKey === 'laugh'
+            ? Math.floor(elapsedPoseMs / (1000 / anim.fps)) % anim.frames.length
+            : Math.min(
+                anim.frames.length - 1,
+                Math.floor(elapsedPoseMs / (1000 / anim.fps))
+              );
+      const f = anim.frames[frameIdx];
+
+      const scale = 0.38;
+      const drawW = f.w * scale;
+      const drawH = f.h * scale;
+      const drawX = (-255 - anim.offset[0]) * scale;
+      const drawY = 82 - (659 + anim.offset[1]) * scale;
+
+      drawCharSubTexture(
+        ctx,
+        ycrMadSheet,
+        f.x,
+        f.y,
+        f.w,
+        f.h,
+        drawX,
+        drawY,
+        drawW,
+        drawH,
+        0.25
+      );
+      ctx.restore();
+      return;
+    }
+  }
+
+  // 8. You Can't Run 16-Bit Pixel Genesis Section: Sonic_EXE_Pixel (Sonic_EXE_Pixel.png + Sonic_EXE_Pixel.xml)
+  if (character === 'pixel-exe') {
+    const pixelExeSheet = getSpriteSheet('/sprites/Sonic_EXE_Pixel.png');
+    if (pixelExeSheet) {
+      ctx.save();
+      ctx.translate(x, y);
+      const prevSmooth = ctx.imageSmoothingEnabled;
+      ctx.imageSmoothingEnabled = false;
+
+      // Pixel ground shadow
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+      ctx.fillRect(-58, 70, 116, 16);
+
+      const animKey: 'idle' | 'left' | 'down' | 'up' | 'right' =
+        pose === 'left' || pose === 'down' || pose === 'up' || pose === 'right'
+          ? pose
+          : 'idle';
+      const frames = SONIC_PIXEL_ANIMS[animKey];
+      const beatLocalMs = ((timeMs % beatPeriod) + beatPeriod) % beatPeriod;
+      const frameIdx =
+        animKey === 'idle'
+          ? Math.min(frames.length - 1, Math.floor(beatLocalMs / (1000 / 12)))
+          : Math.min(frames.length - 1, Math.floor(elapsedPoseMs / (1000 / 14)));
+      const f = frames[frameIdx];
+
+      const scale = 4.7;
+      const drawW = Math.round(f.w * scale);
+      const drawH = Math.round(f.h * scale);
+      // Flip horizontally so Pixel Sonic on the left faces right toward Pixel BF on the right
+      ctx.scale(-1, 1);
+      ctx.drawImage(
+        pixelExeSheet,
+        f.x,
+        f.y,
+        f.w,
+        f.h,
+        -Math.round(drawW * 0.5),
+        82 - drawH,
+        drawW,
+        drawH
+      );
+
+      ctx.imageSmoothingEnabled = prevSmooth;
+      ctx.restore();
+      return;
+    }
+  }
+
+  // 8b. Triple Trouble Xenophanes (Beast.png + Beast.xml: sonic-beast & sonic-beast-invert)
+  if (character === 'xenophanes' || character === 'xenophanes-flipped') {
+    const beastSheet = getSpriteSheet('/sprites/Beast.png');
+    if (beastSheet) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.58)';
+      ctx.beginPath();
+      ctx.ellipse(0, 86, 86, 18, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      const isFlipped = character === 'xenophanes-flipped';
+      // In sonic-beast-invert.json, singLEFT uses Beast_RIGHT and singRIGHT uses Beast_LEFT
+      const animKey: 'idle' | 'left' | 'down' | 'up' | 'right' | 'laugh' =
+        pose === 'laugh' || pose === 'gotcha'
+          ? 'laugh'
+          : pose === 'left'
+            ? isFlipped
+              ? 'right'
+              : 'left'
+            : pose === 'right'
+              ? isFlipped
+                ? 'left'
+                : 'right'
+              : pose === 'down' || pose === 'up'
+                ? pose
+                : 'idle';
+      const anim = XENOPHANES_BEAST_ANIMS[animKey];
+      const beatLocalMs = ((timeMs % beatPeriod) + beatPeriod) % beatPeriod;
+      const frameIdx =
+        animKey === 'idle'
+          ? Math.min(
+              anim.frames.length - 1,
+              Math.floor(beatLocalMs / (1000 / 24))
+            )
+          : Math.min(
+              anim.frames.length - 1,
+              Math.floor(elapsedPoseMs / (1000 / 24))
+            );
+      const f = anim.frames[frameIdx];
+
+      const scale = 0.54;
+      const drawW = f.w * scale;
+      const drawH = f.h * scale;
+      if (isFlipped) {
+        ctx.scale(-1, 1);
+      }
+      const drawX = -drawW * 0.5 - (anim.offset[0] * 0.45 + f.fx * 0.4) * scale;
+      const drawY = 108 - (860 + anim.offset[1] * 0.35 + f.fy * 0.4) * scale;
+
+      drawCharSubTexture(
+        ctx,
+        beastSheet,
+        f.x,
+        f.y,
+        f.w,
+        f.h,
+        drawX,
+        drawY,
+        drawW,
+        drawH,
+        0.25
+      );
+      ctx.restore();
+      return;
+    }
+  }
+
+  // Use the exact 5-pose Sonic.exe sprites for Too Slow!
+  if (character === 'sonic-exe') {
     ctx.save();
     ctx.translate(x, y);
     ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
     ctx.beginPath();
     ctx.ellipse(0, 82, 68, 16, 0, 0, Math.PI * 2);
     ctx.fill();
-
-    if (character === 'ycr-exe') {
-      // Crimson Labyrinth Phase 2 aura & ragged quill spikes behind Sonic.exe P2
-      ctx.save();
-      ctx.fillStyle = 'rgba(220, 38, 38, 0.18)';
-      ctx.beginPath();
-      ctx.ellipse(0, -14, 84, 108, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    }
 
     drawTooSlowSonicExeSprite(ctx, pose, timeMs, bpm, poseStartedMs);
     ctx.restore();
@@ -2545,13 +4578,10 @@ export function drawOpponentSprite(
     // Glowing Red Pupils
     const pupilRadius = pose === 'gotcha' ? 6.2 : 4.2;
     ctx.fillStyle = isPixel ? '#FACC15' : '#EF4444';
-    ctx.shadowColor = '#EF4444';
-    ctx.shadowBlur = pose === 'gotcha' ? 20 : 12;
     ctx.beginPath();
     ctx.arc(1, -5, pupilRadius, 0, Math.PI * 2);
     ctx.arc(19, -5, pupilRadius, 0, Math.PI * 2);
     ctx.fill();
-    ctx.shadowBlur = 0;
   }
 
   // Sinister Grin / Singing Mouth depending on Pose
@@ -2712,11 +4742,127 @@ export function drawPlayerSprite(
   timeMs: number,
   bpm: number,
   _stageTheme: StageThemeId,
-  poseStartedMs = 0
+  poseStartedMs = 0,
+  isFlippedOnLeft = false
 ) {
   const beatPeriod = 60000 / bpm;
   const elapsedPoseMs = Math.max(0, timeMs - poseStartedMs);
   const beatPhase = (((timeMs % beatPeriod) + beatPeriod) % beatPeriod) / beatPeriod;
+
+  // Triple Trouble Over-the-Shoulder 3rd-Person Perspective Boyfriend (P3_BF.png + P3_BF.xml)
+  if (
+    character === 'bf-perspective-right' ||
+    character === 'bf-perspective-left'
+  ) {
+    const p3BfSheet = getSpriteSheet('/sprites/P3_BF.png');
+    if (p3BfSheet) {
+      ctx.save();
+      ctx.translate(x, y);
+      const isRightSide = character === 'bf-perspective-right';
+      const animKey: 'idle' | 'left' | 'down' | 'up' | 'right' | 'miss' =
+        pose === 'miss'
+          ? 'miss'
+          : pose === 'left'
+            ? isRightSide
+              ? 'left'
+              : 'right'
+            : pose === 'right'
+              ? isRightSide
+                ? 'right'
+                : 'left'
+              : pose === 'down' || pose === 'up'
+                ? pose
+                : 'idle';
+      const anim = BF_PERSPECTIVE_ANIMS[animKey];
+      const beatLocalMs = ((timeMs % beatPeriod) + beatPeriod) % beatPeriod;
+      const frameIdx =
+        animKey === 'idle'
+          ? Math.min(
+              anim.frames.length - 1,
+              Math.floor(beatLocalMs / (1000 / 24))
+            )
+          : Math.min(
+              anim.frames.length - 1,
+              Math.floor(elapsedPoseMs / (1000 / 24))
+            );
+      const f = anim.frames[frameIdx];
+
+      const scale = 0.72;
+      const drawW = f.w * scale;
+      const drawH = f.h * scale;
+      if (isRightSide) {
+        ctx.scale(-1, 1);
+      }
+      const drawX = -drawW * 0.5 - anim.offset[0] * scale * 0.45;
+      const drawY = 185 - drawH - anim.offset[1] * scale * 0.45;
+
+      drawCharSubTexture(
+        ctx,
+        p3BfSheet,
+        f.x,
+        f.y,
+        f.w,
+        f.h,
+        drawX,
+        drawY,
+        drawW,
+        drawH,
+        0.25
+      );
+      ctx.restore();
+      return;
+    }
+  }
+
+  // 16-Bit Pixel Boyfriend for You Can't Run Pixel Section (BF_Pixel.png + BF.xml, on the right side facing left)
+  if (character === 'bf-pixel') {
+    const bfPixelSheet = getSpriteSheet('/sprites/BF_Pixel.png');
+    if (bfPixelSheet) {
+      ctx.save();
+      ctx.translate(x, y);
+      const prevSmooth = ctx.imageSmoothingEnabled;
+      ctx.imageSmoothingEnabled = false;
+
+      // Pixel ground shadow
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+      ctx.fillRect(-52, 66, 104, 16);
+
+      const animKey: 'idle' | 'left' | 'down' | 'up' | 'right' | 'miss' =
+        pose === 'left' ||
+        pose === 'down' ||
+        pose === 'up' ||
+        pose === 'right' ||
+        pose === 'miss'
+          ? pose
+          : 'idle';
+      const frames = BF_PIXEL_ANIMS[animKey];
+      const beatLocalMs = ((timeMs % beatPeriod) + beatPeriod) % beatPeriod;
+      const frameIdx =
+        animKey === 'idle'
+          ? Math.min(frames.length - 1, Math.floor(beatLocalMs / (1000 / 12)))
+          : Math.min(frames.length - 1, Math.floor(elapsedPoseMs / (1000 / 14)));
+      const f = frames[frameIdx];
+
+      const scale = 4.6;
+      const drawW = Math.round(f.w * scale);
+      const drawH = Math.round(f.h * scale);
+      ctx.drawImage(
+        bfPixelSheet,
+        f.x,
+        f.y,
+        f.w,
+        f.h,
+        -Math.round(drawW * 0.5),
+        78 - drawH,
+        drawW,
+        drawH
+      );
+
+      ctx.imageSmoothingEnabled = prevSmooth;
+      ctx.restore();
+      return;
+    }
+  }
 
   // Use ENCORE_BF (encore_bf) for all Encore songs!
   if (character === 'bf-encore') {
@@ -2740,43 +4886,27 @@ export function drawPlayerSprite(
           ? pose
           : 'idle';
       const anim = ENCORE_BF_ANIMS[animKey];
+      const beatLocalMs = ((timeMs % beatPeriod) + beatPeriod) % beatPeriod;
       const frameIdx =
         animKey === 'idle'
-          ? Math.floor(beatPhase * anim.frames.length) % anim.frames.length
+          ? Math.min(
+              anim.frames.length - 1,
+              Math.floor(beatLocalMs / (1000 / 12))
+            )
           : Math.min(
               anim.frames.length - 1,
-              Math.floor(elapsedPoseMs / 42)
+              Math.floor(elapsedPoseMs / (1000 / 12))
             );
       const frame = anim.frames[frameIdx];
-
-      const moveInT = animKey === 'idle' ? 1 : Math.min(1, elapsedPoseMs / 85);
-      const unreached = 1 - (1 - Math.pow(1 - moveInT, 3));
-      const headBounce =
-        animKey === 'idle'
-          ? Math.sin(beatPhase * Math.PI) * 5.5
-          : Math.sin(elapsedPoseMs * 0.052) * Math.exp(-elapsedPoseMs * 0.0045) * 8;
-
-      const slideX =
-        animKey === 'left'
-          ? 24 * unreached
-          : animKey === 'right'
-            ? -24 * unreached
-            : 0;
-      const slideY =
-        animKey === 'up'
-          ? 20 * unreached
-          : animKey === 'down'
-            ? -18 * unreached
-            : 0;
 
       const scale = 0.38;
       const drawW = frame.w * scale;
       const drawH = frame.h * scale;
-      const drawX = -78 - (anim.offset[0] + 5) * scale + slideX;
-      const drawY =
-        78 - 496 * scale - anim.offset[1] * scale + slideY + headBounce * 0.45;
+      const drawX = -78 - (anim.offset[0] + 5) * scale;
+      const drawY = 78 - 496 * scale - anim.offset[1] * scale;
 
-      ctx.drawImage(
+      drawCharSubTexture(
+        ctx,
         encoreSheet,
         frame.x,
         frame.y,
@@ -2790,6 +4920,60 @@ export function drawPlayerSprite(
       ctx.restore();
       return;
     }
+  }
+
+  // Universal BOYFRIEND.png sprite sheet across Too Slow, You Can't Run, Triple Trouble, and Endless!
+  const bfSheet = getSpriteSheet('/sprites/BOYFRIEND.png');
+  if (bfSheet) {
+    ctx.save();
+    ctx.translate(x, y);
+
+    // Ground shadow
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    ctx.beginPath();
+    ctx.ellipse(0, 78, 60, 14, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (isFlippedOnLeft) {
+      ctx.scale(-1, 1);
+    }
+
+    const animKey: 'idle' | 'left' | 'down' | 'up' | 'right' | 'miss' =
+      pose === 'left'
+        ? isFlippedOnLeft
+          ? 'right'
+          : 'left'
+        : pose === 'right'
+          ? isFlippedOnLeft
+            ? 'left'
+            : 'right'
+          : pose === 'down' || pose === 'up' || pose === 'miss'
+            ? pose
+            : 'idle';
+    const anim = BOYFRIEND_ANIMS[animKey];
+    const beatLocalMs = ((timeMs % beatPeriod) + beatPeriod) % beatPeriod;
+    const frameIdx =
+      animKey === 'idle'
+        ? Math.min(
+            anim.frames.length - 1,
+            Math.floor(beatLocalMs / (1000 / 24))
+          )
+        : Math.min(
+            anim.frames.length - 1,
+            Math.floor(elapsedPoseMs / (1000 / 24))
+          );
+    const f = anim.frames[frameIdx];
+
+    // Exact Psych Engine foot-anchored coordinates (psych_cx = 220, psych_bot = 411)
+    const scale = 0.44;
+    const drawW = f.w * scale;
+    const drawH = f.h * scale;
+    const drawX = (-220 - anim.offset[0] - f.fx) * scale;
+    const drawY = 78 - (411 + anim.offset[1] + f.fy) * scale;
+
+    drawCharSubTexture(ctx, bfSheet, f.x, f.y, f.w, f.h, drawX, drawY, drawW, drawH);
+    ctx.restore();
+    return;
   }
 
   ctx.save();
@@ -3178,20 +5362,109 @@ export function drawPlayerSprite(
 // - sonic-exe -> icon-sonic-exe.png (Too Slow & Too Slow Encore after Fake Sonic)
 // - majin -> icon-majin.png (Endless)
 // - majin-og -> icon-majin-og.png (Endless OG)
+export function getCharacterHealthColor(
+  character: OpponentCharacterId | PlayerCharacterId
+): string {
+  switch (character) {
+    case 'tails-soul':
+      return '#666666'; // Tails.EXE grey from Triple Trouble video
+    case 'xenophanes':
+    case 'xenophanes-flipped':
+      return '#4F1D96'; // Xenophanes deep purple from Triple Trouble video
+    case 'knuckles-soul':
+      return '#7F1212'; // Knuckles.EXE dark crimson from Triple Trouble video
+    case 'eggman-soul':
+      return '#8B5A00'; // Eggman.EXE dark gold/ochre from Triple Trouble video
+    case 'sonicexefake':
+      return '#1D4ED8'; // Fake Sonic royal blue
+    case 'sonic-exe':
+      return '#161E9C'; // Sonic.EXE deep royal blue from Too Slow video
+    case 'ycr-exe':
+      return '#1E3A8A'; // YCR Sonic.EXE dark blue
+    case 'ycr-mad':
+      return '#991B1B'; // YCR Mad crimson
+    case 'pixel-exe':
+      return '#2563EB'; // Pixel Sonic blue
+    case 'majin':
+      return '#1D4ED8'; // Majin Sonic cobalt
+    case 'majin-og':
+      return '#1E40AF'; // Majin OG deep cobalt
+    case 'bf':
+    case 'bf-encore':
+    case 'bf-pixel':
+    case 'bf-perspective-right':
+    case 'bf-perspective-left':
+    default:
+      return '#31B0D1'; // Boyfriend signature cyan
+  }
+}
+
 export function drawHealthIcon(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
   isPlayer: boolean,
   character: OpponentCharacterId | PlayerCharacterId,
-  isLosing: boolean
+  isLosing: boolean,
+  bopScale = 1.0
 ) {
   ctx.save();
   ctx.translate(x, y);
+  if (bopScale !== 1.0) {
+    ctx.scale(bopScale, bopScale);
+  }
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
 
   if (isPlayer) {
+    if (character === 'bf-pixel') {
+      const bfPixelIcon = getSpriteSheet('/sprites/icon-bfpixelycr.png');
+      if (bfPixelIcon) {
+        const halfW = Math.floor(bfPixelIcon.naturalWidth / 2);
+        const fullH = bfPixelIcon.naturalHeight;
+        const sx = isLosing ? halfW : 0;
+        const drawSize = 78;
+        const prevSmooth = ctx.imageSmoothingEnabled;
+        ctx.imageSmoothingEnabled = false;
+        ctx.scale(-1, 1);
+        ctx.drawImage(
+          bfPixelIcon,
+          sx,
+          0,
+          halfW,
+          fullH,
+          -drawSize * 0.5,
+          -drawSize * 0.5,
+          drawSize,
+          drawSize
+        );
+        ctx.imageSmoothingEnabled = prevSmooth;
+        ctx.restore();
+        return;
+      }
+    }
+    // Universal Boyfriend Health Icon (icon-bf.png)
+    const bfIcon = getSpriteSheet('/sprites/icon-bf.png');
+    if (bfIcon) {
+      const halfW = Math.floor(bfIcon.naturalWidth / 2);
+      const fullH = bfIcon.naturalHeight;
+      const sx = isLosing ? halfW : 0;
+      const drawSize = 82;
+      ctx.scale(-1, 1);
+      ctx.drawImage(
+        bfIcon,
+        sx,
+        0,
+        halfW,
+        fullH,
+        -drawSize * 0.5,
+        -drawSize * 0.5,
+        drawSize,
+        drawSize
+      );
+      ctx.restore();
+      return;
+    }
     // Universal Boyfriend Health Icon matching uploaded image.png (Normal & Losing states)
     // Horizontally flipped (-1.25, 1.25) so Boyfriend's icon on the right side of the bar faces LEFT!
     ctx.scale(-1.25, 1.25);
@@ -3316,6 +5589,26 @@ export function drawHealthIcon(
     }
   } else if (character === 'sonicexefake') {
     // 1. icon-sonicfake.png (ONLY during Too Slow Encore while Fake Sonic is there!)
+    const fakeIconSheet = getSpriteSheet('/sprites/icon-sonicfake.png');
+    if (fakeIconSheet) {
+      const halfW = Math.floor(fakeIconSheet.naturalWidth / 2);
+      const fullH = fakeIconSheet.naturalHeight;
+      const sx = isLosing ? halfW : 0;
+      const drawSize = 82;
+      ctx.drawImage(
+        fakeIconSheet,
+        sx,
+        0,
+        halfW,
+        fullH,
+        -drawSize * 0.5,
+        -drawSize * 0.5,
+        drawSize,
+        drawSize
+      );
+      ctx.restore();
+      return;
+    }
     ctx.scale(1.25, 1.25);
     ctx.fillStyle = '#0055E5';
     ctx.strokeStyle = '#000000';
@@ -3411,6 +5704,26 @@ export function drawHealthIcon(
     }
   } else if (character === 'majin') {
     // 2. icon-majin.png (for Endless)
+    const majinIcon = getSpriteSheet('/sprites/icon-majin.png');
+    if (majinIcon) {
+      const halfW = Math.floor(majinIcon.naturalWidth / 2);
+      const fullH = majinIcon.naturalHeight;
+      const sx = isLosing ? halfW : 0;
+      const drawSize = 82;
+      ctx.drawImage(
+        majinIcon,
+        sx,
+        0,
+        halfW,
+        fullH,
+        -drawSize * 0.5,
+        -drawSize * 0.5,
+        drawSize,
+        drawSize
+      );
+      ctx.restore();
+      return;
+    }
     ctx.scale(1.25, 1.25);
     const majinBlue = '#001AE6';
     ctx.strokeStyle = '#000000';
@@ -3504,6 +5817,26 @@ export function drawHealthIcon(
     ctx.fillRect(2, 4, 7, 3);
   } else if (character === 'majin-og') {
     // 3. icon-majin-og.png (for Endless OG)
+    const majinOgIcon = getSpriteSheet('/sprites/icon-majin-og.png');
+    if (majinOgIcon) {
+      const halfW = Math.floor(majinOgIcon.naturalWidth / 2);
+      const fullH = majinOgIcon.naturalHeight;
+      const sx = isLosing ? halfW : 0;
+      const drawSize = 82;
+      ctx.drawImage(
+        majinOgIcon,
+        sx,
+        0,
+        halfW,
+        fullH,
+        -drawSize * 0.5,
+        -drawSize * 0.5,
+        drawSize,
+        drawSize
+      );
+      ctx.restore();
+      return;
+    }
     ctx.scale(1.25, 1.25);
     const ogBlue = '#001AE6';
     ctx.strokeStyle = '#000000';
@@ -3596,8 +5929,43 @@ export function drawHealthIcon(
       ctx.quadraticCurveTo(6, 19, 15, 16);
       ctx.stroke();
     }
-  } else if (character === 'ycr-exe' || character === 'pixel-exe') {
-    // Universal You Can't Run Health Bar Icon (applied to both You Can't Run & You Can't Run Encore across all phases)
+  } else if (
+    character === 'ycr-exe' ||
+    character === 'ycr-mad' ||
+    character === 'pixel-exe'
+  ) {
+    const ycrIconPath =
+      character === 'ycr-mad'
+        ? '/sprites/icon-ycr-pissy.png'
+        : character === 'pixel-exe'
+          ? '/sprites/icon-pixelsonic.png'
+          : '/sprites/icon-ycr.png';
+    const ycrIconSheet = getSpriteSheet(ycrIconPath);
+    if (ycrIconSheet) {
+      const halfW = Math.floor(ycrIconSheet.naturalWidth / 2);
+      const fullH = ycrIconSheet.naturalHeight;
+      const sx = isLosing ? halfW : 0;
+      const drawSize = character === 'pixel-exe' ? 78 : 84;
+      const prevSmooth = ctx.imageSmoothingEnabled;
+      if (character === 'pixel-exe') {
+        ctx.imageSmoothingEnabled = false;
+      }
+      ctx.drawImage(
+        ycrIconSheet,
+        sx,
+        0,
+        halfW,
+        fullH,
+        -drawSize * 0.5,
+        -drawSize * 0.5,
+        drawSize,
+        drawSize
+      );
+      ctx.imageSmoothingEnabled = prevSmooth;
+      ctx.restore();
+      return;
+    }
+    // Fallback vector icon if image is still loading
     ctx.scale(1.25, 1.25);
     const ycrBlue = '#1344A8';
     ctx.fillStyle = ycrBlue;
@@ -3745,9 +6113,10 @@ export function drawHealthIcon(
     character === 'tails-soul' ||
     character === 'knuckles-soul' ||
     character === 'eggman-soul' ||
-    character === 'xenophanes'
+    character === 'xenophanes' ||
+    character === 'xenophanes-flipped'
   ) {
-    // Triple Trouble Health Icons from tails.json ("tails"), knux.json ("knux"), eggy.json ("eggman"), and Xenophanes
+    // Triple Trouble Health Icons
     const iconPath =
       character === 'tails-soul'
         ? '/sprites/icon-tails.png'
@@ -3778,10 +6147,29 @@ export function drawHealthIcon(
     }
   } else {
     // 4. icon-sonic-exe.png (for the entirety of Too Slow, and Too Slow Encore after Fake Sonic!)
+    const exeIconSheet = getSpriteSheet('/sprites/icon-sonic-exe.png');
+    if (exeIconSheet) {
+      const halfW = Math.floor(exeIconSheet.naturalWidth / 2);
+      const fullH = exeIconSheet.naturalHeight;
+      const sx = isLosing ? halfW : 0;
+      const drawSize = 82;
+      ctx.drawImage(
+        exeIconSheet,
+        sx,
+        0,
+        halfW,
+        fullH,
+        -drawSize * 0.5,
+        -drawSize * 0.5,
+        drawSize,
+        drawSize
+      );
+      ctx.restore();
+      return;
+    }
     ctx.scale(1.25, 1.25);
 
-    const iconFill =
-      character === 'xenophanes' ? '#6B21A8' : '#0960B8';
+    const iconFill = '#0960B8';
 
     ctx.fillStyle = iconFill;
     ctx.strokeStyle = '#000000';
@@ -3903,6 +6291,166 @@ export function drawHealthIcon(
   ctx.restore();
 }
 
+export function drawSonicJumpscare(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  spookType = 'sonic'
+) {
+  ctx.save();
+  ctx.fillStyle = '#000000';
+  ctx.fillRect(0, 0, w, h);
+  const spookPath =
+    spookType === 'tails'
+      ? '/sprites/P3_Tails.png'
+      : spookType === 'knuckles'
+        ? '/sprites/P3_Knuckles.png'
+        : spookType === 'eggman'
+          ? '/sprites/P3_Eggman.png'
+          : '/sprites/SonicJumpscare.png';
+  const spookImg = getSpriteSheet(spookPath);
+  if (spookImg) {
+    ctx.drawImage(spookImg, 0, 0, w, h);
+  } else {
+    drawOpponentSprite(ctx, w * 0.5, h * 0.58, 'sonic-exe', 'gotcha', 0, 130);
+  }
+  ctx.restore();
+}
+
+export function drawTripleTroubleRingCounter(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  rings: number
+) {
+  ctx.save();
+  const baseX = w - 135;
+  const baseY = h - 78;
+  const ringIcon = getSpriteSheet('/sprites/RingCounter.png');
+  if (ringIcon) {
+    ctx.drawImage(ringIcon, baseX - 24, baseY - 22, 62, 62);
+  } else {
+    ctx.strokeStyle = '#FACC15';
+    ctx.lineWidth = 8;
+    ctx.beginPath();
+    ctx.arc(baseX + 6, baseY + 8, 20, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  // Classic Sonic 3D yellow numbers with thick red/black outline ("00" / "64" + "Rings")
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = '900 44px "Syne", "JetBrains Mono", sans-serif';
+  ctx.strokeStyle = '#991B1B';
+  ctx.lineWidth = 8;
+  ctx.strokeText(String(Math.max(0, rings)), baseX + 52, baseY + 6);
+  ctx.fillStyle = '#FACC15';
+  ctx.fillText(String(Math.max(0, rings)), baseX + 52, baseY + 6);
+
+  ctx.font = '900 22px "Syne", sans-serif';
+  ctx.strokeStyle = '#7F1D1D';
+  ctx.lineWidth = 6;
+  ctx.strokeText('Rings', baseX + 38, baseY + 38);
+  ctx.fillStyle = '#FDE047';
+  ctx.fillText('Rings', baseX + 38, baseY + 38);
+  ctx.restore();
+}
+
+export function drawRedVignetteOverlay(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  alpha: number
+) {
+  if (alpha <= 0.01) return;
+  const redVgImg = getSpriteSheet('/sprites/RedVG.png');
+  ctx.save();
+  ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
+  if (redVgImg) {
+    ctx.drawImage(redVgImg, 0, 0, w, h);
+  } else {
+    const grad = ctx.createRadialGradient(
+      w * 0.5,
+      h * 0.5,
+      h * 0.25,
+      w * 0.5,
+      h * 0.5,
+      w * 0.65
+    );
+    grad.addColorStop(0, 'rgba(220, 38, 38, 0)');
+    grad.addColorStop(1, 'rgba(220, 38, 38, 0.85)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+  }
+  ctx.restore();
+}
+
+export function drawJudgmentAndComboPopup(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  combo: number,
+  centerX: number,
+  baseY: number,
+  age: number,
+  isAntiLag = false
+) {
+  ctx.save();
+  if (!isAntiLag) {
+    ctx.globalAlpha = Math.max(0, 1 - Math.pow(age, 1.6) * 0.92);
+  }
+
+  const popBounce = 1 + Math.max(0, 1 - age * 5.5) * 0.14;
+  const py = baseY - Math.sin(age * Math.PI) * 18;
+
+  const judgmentSpritePath =
+    text === 'SICK!!'
+      ? '/sprites/ui/sick.png'
+      : text === 'GOOD!'
+        ? '/sprites/ui/good.png'
+        : text === 'BAD'
+          ? '/sprites/ui/bad.png'
+          : text === 'SHIT'
+            ? '/sprites/ui/shit.png'
+            : null;
+
+  if (judgmentSpritePath) {
+    const ratingImg = getSpriteSheet(judgmentSpritePath);
+    if (ratingImg) {
+      const ratingScale = 0.44 * popBounce;
+      const rw = ratingImg.naturalWidth * ratingScale;
+      const rh = ratingImg.naturalHeight * ratingScale;
+      ctx.drawImage(ratingImg, centerX - rw * 0.5, py - rh * 0.6, rw, rh);
+    }
+
+    // Always render at least a 3-digit zero-padded combo counter (e.g. 006, 042) using only the number sprites
+    if (combo >= 1) {
+      const comboStr = String(Math.max(0, Math.floor(combo))).padStart(3, '0');
+      const digitScale = 0.36;
+      const digitSpacing = 33;
+      const totalWidth = (comboStr.length - 1) * digitSpacing;
+      const startX = centerX - totalWidth * 0.5;
+      const comboY = py + 44;
+
+      for (let i = 0; i < comboStr.length; i++) {
+        const ch = comboStr[i];
+        const digitImg = getSpriteSheet(`/sprites/ui/num${ch}.png`);
+        if (digitImg) {
+          const digitAge = Math.max(0, age - i * 0.025);
+          const digitPop = 1 + Math.max(0, 1 - digitAge * 6) * 0.12;
+          const digitBounceY = -Math.sin(Math.min(1, digitAge * 1.15) * Math.PI) * 8;
+          const dw = digitImg.naturalWidth * digitScale * digitPop;
+          const dh = digitImg.naturalHeight * digitScale * digitPop;
+          const dx = startX + i * digitSpacing - dw * 0.5;
+          const dy = comboY + digitBounceY - dh * 0.5;
+          ctx.drawImage(digitImg, dx, dy, dw, dh);
+        }
+      }
+    }
+  }
+
+  ctx.restore();
+}
+
 export function calculateAccuracy(stats: {
   sicks: number;
   goods: number;
@@ -3935,3 +6483,54 @@ export function calculateGrade(accuracy: number, _misses = 0): string {
   if (accuracy > 50) return 'D';
   return 'F';
 }
+
+export function formatPsychRating(stats: {
+  sicks: number;
+  goods: number;
+  bads: number;
+  shits: number;
+  misses: number;
+}): string {
+  const totalJudged =
+    stats.sicks + stats.goods + stats.bads + stats.shits + stats.misses;
+  if (totalJudged <= 0) return '?';
+
+  const acc = calculateAccuracy(stats);
+  let ratingName = 'You Suck!';
+  if (acc >= 100 - 1e-6) {
+    ratingName = 'Perfect!!';
+  } else if (acc >= 90) {
+    ratingName = 'Sick!';
+  } else if (acc >= 80) {
+    ratingName = 'Great';
+  } else if (acc >= 70) {
+    ratingName = 'Good';
+  } else if (acc >= 69) {
+    ratingName = 'Nice';
+  } else if (acc >= 60) {
+    ratingName = 'Meh';
+  } else if (acc >= 50) {
+    ratingName = 'Bruh';
+  } else if (acc >= 40) {
+    ratingName = 'Bad';
+  } else if (acc >= 20) {
+    ratingName = 'Shit';
+  }
+
+  let fcTier = 'Clear';
+  if (stats.misses === 0) {
+    if (stats.bads > 0 || stats.shits > 0) {
+      fcTier = 'FC';
+    } else if (stats.goods > 0) {
+      fcTier = 'GFC';
+    } else {
+      fcTier = 'SFC';
+    }
+  } else if (stats.misses < 10) {
+    fcTier = 'SDCB';
+  }
+
+  const accFormatted = Number(acc.toFixed(2));
+  return `${ratingName} (${accFormatted}%) - ${fcTier}`;
+}
+

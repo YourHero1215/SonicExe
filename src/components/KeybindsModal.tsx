@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Keyboard, RotateCcw, Sliders, Volume2, X } from 'lucide-react';
-import { GameplaySettings, KeybindConfig } from '../types/game';
+import {
+  GameplaySettings,
+  getVideoQualityResolution,
+  KeybindConfig,
+} from '../types/game';
 import { soundEngine } from '../audio/soundEngine';
 
 interface KeybindsModalProps {
@@ -134,7 +138,7 @@ export const KeybindsModal: React.FC<KeybindsModalProps> = ({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
       <div className="w-full max-w-3xl rounded-xl bg-[#111018] border border-white/10 shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-[#171522]">
@@ -396,6 +400,134 @@ export const KeybindsModal: React.FC<KeybindsModalProps> = ({
                 >
                   {settings.botplay ? 'BOTPLAY ON' : 'MANUAL'}
                 </button>
+              </div>
+
+              {/* Anti-Lag Mode for Lower-End Devices / Chromebooks */}
+              <div className="flex items-center justify-between py-2 border-b border-white/5">
+                <div>
+                  <div className="text-sm font-medium text-emerald-400">
+                    Anti-Lag Mode (Low-End Devices)
+                  </div>
+                  <div className="text-xs text-slate-400">
+                    Disables beat-zoom resampling, text outlines & particles for locked 60 FPS
+                  </div>
+                </div>
+                <button
+                  onClick={() =>
+                    onChangeSettings({
+                      ...settings,
+                      antiLagMode: !settings.antiLagMode,
+                    })
+                  }
+                  className={`px-3.5 py-1.5 text-xs font-mono font-bold rounded-lg transition-colors whitespace-nowrap ${
+                    settings.antiLagMode
+                      ? 'bg-emerald-500 text-black'
+                      : 'bg-white/10 text-slate-300'
+                  }`}
+                >
+                  {settings.antiLagMode ? 'ANTI-LAG ON' : 'OFF'}
+                </button>
+              </div>
+
+              {/* Linked Pixel Ratio (X : Y) - Controls Video Quality while keeping display aspect ratio */}
+              <div className="py-2.5 border-b border-white/5 space-y-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <div className="text-sm font-medium text-white">
+                      Video Quality / Pixel Ratio (Auto-Linked)
+                    </div>
+                    <div className="text-xs text-slate-400">
+                      Changing either number auto-scales the other to match the ratio and adjusts video quality
+                    </div>
+                  </div>
+                  <span className="text-[11px] font-mono font-bold text-cyan-300 whitespace-nowrap">
+                    {
+                      getVideoQualityResolution(
+                        settings.pixelRatioX,
+                        settings.pixelRatioY
+                      ).label
+                    }
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    step="any"
+                    min={0.1}
+                    value={settings.pixelRatioX}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value);
+                      if (!Number.isFinite(val) || val <= 0) return;
+                      const lock = settings.pixelRatioLock || 1.5;
+                      const nextY = Math.round((val / lock) * 100) / 100;
+                      onChangeSettings({
+                        ...settings,
+                        pixelRatioX: val,
+                        pixelRatioY: nextY,
+                      });
+                    }}
+                    aria-label="Pixel Ratio First Number"
+                    className="w-full px-3 py-1.5 rounded-lg bg-[#09080D] border border-white/15 text-white font-mono text-xs text-center focus:outline-none focus:border-red-500"
+                  />
+                  <span className="font-mono font-bold text-slate-400">:</span>
+                  <input
+                    type="number"
+                    step="any"
+                    min={0.1}
+                    value={settings.pixelRatioY}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value);
+                      if (!Number.isFinite(val) || val <= 0) return;
+                      const lock = settings.pixelRatioLock || 1.5;
+                      const nextX = Math.round(val * lock * 100) / 100;
+                      onChangeSettings({
+                        ...settings,
+                        pixelRatioX: nextX,
+                        pixelRatioY: val,
+                      });
+                    }}
+                    aria-label="Pixel Ratio Second Number"
+                    className="w-full px-3 py-1.5 rounded-lg bg-[#09080D] border border-white/15 text-white font-mono text-xs text-center focus:outline-none focus:border-red-500"
+                  />
+                </div>
+
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-[11px] text-slate-400 mr-1">
+                    Video Quality:
+                  </span>
+                  {[
+                    { label: '0.75:0.5 (180p)', x: 0.75, y: 0.5, lock: 1.5 },
+                    { label: '1.5:1 (360p)', x: 1.5, y: 1, lock: 1.5 },
+                    { label: '2.25:1.5 (540p)', x: 2.25, y: 1.5, lock: 1.5 },
+                    { label: '3:2 (720p HD)', x: 3, y: 2, lock: 1.5 },
+                    { label: '4.5:3 (1080p)', x: 4.5, y: 3, lock: 1.5 },
+                  ].map((p) => {
+                    const active =
+                      settings.pixelRatioX === p.x &&
+                      settings.pixelRatioY === p.y;
+                    return (
+                      <button
+                        key={p.label}
+                        onClick={() =>
+                          onChangeSettings({
+                            ...settings,
+                            pixelRatioX: p.x,
+                            pixelRatioY: p.y,
+                            pixelRatioLock: p.lock,
+                          })
+                        }
+                        className={`px-2.5 py-1 rounded text-[11px] font-mono font-semibold border transition-colors ${
+                          active
+                            ? 'bg-red-600 text-white border-red-500'
+                            : 'bg-white/5 text-slate-300 border-white/10 hover:text-white'
+                        }`}
+                      >
+                        {p.label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* CRT Scanlines */}

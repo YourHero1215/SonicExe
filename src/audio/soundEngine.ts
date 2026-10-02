@@ -20,108 +20,156 @@ export interface LoadedOggStem {
 }
 
 export const PERMANENT_OGG_STEM_LINKS: Partial<Record<SongId, string[]>> = {
-  'too-slow': ['Inst.ogg', 'Voices.ogg', 'Voices-bf.ogg', 'Voices-sonicexe.ogg'],
+  'too-slow': ['Inst.ogg', 'Voices.ogg'],
   'too-slow-encore': [
     'Inst-erect.ogg',
-    'Voices-bf-erect.ogg',
-    'Voices-sonicexe-erect.ogg',
-    'sonicexefake.ogg',
+    'Voices-sonicexefake.ogg',
+    'Voices-bf-encore.ogg',
   ],
-  'you-cant-run': [
-    'Inst (you cant run).ogg',
-    'Voices (you cant run).ogg',
-    'Inst.ogg',
-    'Voices.ogg',
-    'Voices-bf.ogg',
-    'Voices-sonicexep2.ogg',
-  ],
+  'you-cant-run': ['Inst.ogg', 'Voices-sonicexep2.ogg', 'Voices-bf.ogg'],
   'you-cant-run-encore': [
-    'Inst-erect (you cant run).ogg',
-    'Voices-erect (you cant run).ogg',
     'Inst-erect.ogg',
-    'Voices-erect.ogg',
-    'Voices-bf-erect.ogg',
     'Voices-sonicexep2-erect.ogg',
+    'Voices-bf-encore.ogg',
   ],
-  endless: ['Inst.ogg', 'Voices-bf.ogg', 'Voices-majin.ogg'],
-  'endless-og': ['Inst.ogg', 'Voices-bf.ogg', 'Voices-majin.ogg'],
+  endless: ['Inst.ogg', 'Voices-majin.ogg', 'Voices-bf-endless.ogg'],
+  'endless-og': ['Inst.ogg', 'Voices.ogg'],
+  'triple-trouble': ['Inst.ogg', 'Voices.ogg'],
 };
 
-export const BUILT_IN_SONG_OGG_URLS: Record<
-  SongId,
-  { name: string; url: string; role: LoadedOggStem['role'] }[]
-> = {
+export interface BuiltInSongOggSpec {
+  name: string;
+  url: string;
+  role: LoadedOggStem['role'];
+  durationSec: number;
+}
+
+export const BUILT_IN_SONG_OGG_URLS: Record<SongId, BuiltInSongOggSpec[]> = {
   'too-slow': [
-    { name: 'Inst.ogg', url: '/audio/too-slow/Inst.ogg', role: 'inst' },
+    {
+      name: 'Inst.ogg',
+      url: '/audio/too-slow/Inst.ogg',
+      role: 'inst',
+      durationSec: 188.3,
+    },
     {
       name: 'Voices.ogg',
       url: '/audio/too-slow/Voices.ogg',
       role: 'voices-combined',
+      durationSec: 188.3,
     },
   ],
   'too-slow-encore': [
     {
       name: 'Inst-erect.ogg',
-      url: '/audio/too-slow-encore/Inst.ogg',
+      url: '/audio/too-slow-encore/Inst-erect.ogg',
       role: 'inst',
+      durationSec: 182.16,
     },
     {
-      name: 'Voices-erect.ogg',
-      url: '/audio/too-slow-encore/Voices.ogg',
-      role: 'voices-combined',
+      name: 'Voices-sonicexefake.ogg',
+      url: '/audio/too-slow-encore/Voices-sonicexefake.ogg',
+      role: 'voices-opp',
+      durationSec: 182.17,
+    },
+    {
+      name: 'Voices-bf-encore.ogg',
+      url: '/audio/too-slow-encore/Voices-bf-encore.ogg',
+      role: 'voices-bf',
+      durationSec: 182.17,
     },
   ],
   'you-cant-run': [
     {
-      name: 'Inst (you cant run).ogg',
+      name: 'Inst.ogg',
       url: '/audio/you-cant-run/Inst.ogg',
       role: 'inst',
+      durationSec: 159.43,
     },
     {
-      name: 'Voices (you cant run).ogg',
-      url: '/audio/you-cant-run/Voices.ogg',
-      role: 'voices-combined',
+      name: 'Voices-sonicexep2.ogg',
+      url: '/audio/you-cant-run/Voices-sonicexep2.ogg',
+      role: 'voices-opp',
+      durationSec: 159.43,
+    },
+    {
+      name: 'Voices-bf.ogg',
+      url: '/audio/you-cant-run/Voices-bf.ogg',
+      role: 'voices-bf',
+      durationSec: 159.43,
     },
   ],
   'you-cant-run-encore': [
     {
-      name: 'Inst-erect (you cant run).ogg',
-      url: '/audio/you-cant-run/Inst.ogg',
+      name: 'Inst-erect.ogg',
+      url: '/audio/you-cant-run-encore/Inst-erect.ogg',
       role: 'inst',
+      durationSec: 209.2,
     },
     {
-      name: 'Voices-erect (you cant run).ogg',
-      url: '/audio/you-cant-run/Voices.ogg',
-      role: 'voices-combined',
+      name: 'Voices-sonicexep2-erect.ogg',
+      url: '/audio/you-cant-run-encore/Voices-sonicexep2-erect.ogg',
+      role: 'voices-opp',
+      durationSec: 209.15,
+    },
+    {
+      name: 'Voices-bf-encore.ogg',
+      url: '/audio/you-cant-run-encore/Voices-bf-encore.ogg',
+      role: 'voices-bf',
+      durationSec: 209.15,
     },
   ],
   endless: [
-    { name: 'Inst.ogg', url: '/audio/endless/Inst.ogg', role: 'inst' },
     {
-      name: 'Voices.ogg',
-      url: '/audio/endless/Voices.ogg',
-      role: 'voices-combined',
+      name: 'Inst.ogg',
+      url: '/audio/endless/Inst.ogg',
+      role: 'inst',
+      durationSec: 169.55,
+    },
+    {
+      name: 'Voices-majin.ogg',
+      url: '/audio/endless/Voices-majin.ogg',
+      role: 'voices-opp',
+      durationSec: 169.55,
+    },
+    {
+      name: 'Voices-bf-endless.ogg',
+      url: '/audio/endless/Voices-bf-endless.ogg',
+      role: 'voices-bf',
+      durationSec: 169.55,
     },
   ],
   'endless-og': [
-    { name: 'Inst.ogg', url: '/audio/endless-og/Inst.ogg', role: 'inst' },
+    {
+      name: 'Inst.ogg',
+      url: '/audio/endless-og/Inst.ogg',
+      role: 'inst',
+      durationSec: 170.32,
+    },
     {
       name: 'Voices.ogg',
       url: '/audio/endless-og/Voices.ogg',
       role: 'voices-combined',
+      durationSec: 170.32,
     },
   ],
   'triple-trouble': [
-    { name: 'Inst.ogg', url: '/audio/triple-trouble/Inst.ogg', role: 'inst' },
+    {
+      name: 'Inst.ogg',
+      url: '/audio/triple-trouble/Inst.ogg',
+      role: 'inst',
+      durationSec: 507.12,
+    },
     {
       name: 'Voices.ogg',
       url: '/audio/triple-trouble/Voices.ogg',
       role: 'voices-combined',
+      durationSec: 507.12,
     },
   ],
 };
 
-const IDB_NAME = 'sonicexe_ogg_stems_v3_db';
+const IDB_NAME = 'sonicexe_ogg_stems_v4_db';
 const IDB_STORE = 'song_ogg_stems';
 
 function openStemsDb(): Promise<IDBDatabase> {
@@ -156,6 +204,8 @@ class FnfSoundEngine {
   private stemStartCtxTime = 0;
   private stemPausedOffsetSec = 0;
   private stemsPlaying = false;
+  private playerVoiceMuted = false;
+  private cachedStaticBuffer: AudioBuffer | null = null;
 
   private ensureContext(): AudioContext | null {
     if (typeof window === 'undefined') return null;
@@ -165,7 +215,7 @@ class FnfSoundEngine {
         (window as unknown as { webkitAudioContext: typeof AudioContext })
           .webkitAudioContext;
       if (!AudioCtx) return null;
-      this.ctx = new AudioCtx();
+      this.ctx = new AudioCtx({ latencyHint: 'interactive' });
       this.masterGain = this.ctx.createGain();
       this.masterGain.gain.value = 0.55;
       this.masterGain.connect(this.ctx.destination);
@@ -287,9 +337,12 @@ class FnfSoundEngine {
   }
 
   public async preloadSongStems(songId: SongId): Promise<LoadedOggStem[]> {
-    const existing = this.getStemsForSong(songId);
-    if (existing.length >= 2) {
-      return existing;
+    const builtInSpecs = BUILT_IN_SONG_OGG_URLS[songId] || [];
+    const existingBuiltIn = this.allStems.filter(
+      (s) => s.isBuiltIn && s.targetSongId === songId
+    );
+    if (builtInSpecs.length > 0 && existingBuiltIn.length >= builtInSpecs.length) {
+      return this.getStemsForSong(songId);
     }
 
     const activePromise = this.preloadPromises.get(songId);
@@ -297,9 +350,8 @@ class FnfSoundEngine {
       return activePromise;
     }
 
-    const builtInSpecs = BUILT_IN_SONG_OGG_URLS[songId] || [];
     if (builtInSpecs.length === 0) {
-      return existing;
+      return this.getStemsForSong(songId);
     }
 
     // Start network fetches immediately (even before AudioContext is active)
@@ -316,12 +368,18 @@ class FnfSoundEngine {
         const ctx = this.ensureContext();
         if (!ctx) return this.getStemsForSong(songId);
 
+        const decodedBatch: LoadedOggStem[] = [];
+
         for (let i = 0; i < builtInSpecs.length; i++) {
           const spec = builtInSpecs[i];
           const raw = rawBuffers[i];
           if (!raw) continue;
           const stemId = `builtin:${songId}:${spec.name}`;
-          if (this.allStems.some((s) => s.id === stemId)) continue;
+          const already = this.allStems.find((s) => s.id === stemId);
+          if (already) {
+            decodedBatch.push(already);
+            continue;
+          }
 
           try {
             const copy = raw.slice(0);
@@ -335,16 +393,20 @@ class FnfSoundEngine {
               targetSongId: songId,
               isBuiltIn: true,
             };
-            const idx = this.allStems.findIndex((s) => s.id === stemId);
-            if (idx >= 0) {
-              this.allStems[idx] = stem;
-            } else {
-              this.allStems.push(stem);
-            }
+            decodedBatch.push(stem);
           } catch {
             // ignore decode failure
           }
         }
+
+        // Evict built-in decoded PCM buffers from other inactive songs to keep Chromebook RAM usage low,
+        // then atomically commit all decoded stems for songId together so playback never starts with only partial stems
+        this.allStems = this.allStems.filter(
+          (s) =>
+            !s.isBuiltIn ||
+            (s.targetSongId !== songId && s.targetSongId === this.activeSongId)
+        );
+        this.allStems.push(...decodedBatch);
       } finally {
         this.loadingSongs.delete(songId);
         this.preloadPromises.delete(songId);
@@ -363,19 +425,104 @@ class FnfSoundEngine {
   }
 
   public getStemsForSong(songId: SongId): LoadedOggStem[] {
-    // Manually added custom .ogg stems always take priority over built-in stems
     const custom = this.getCustomStemsForSong(songId);
-    if (custom.length > 0) {
+    const builtIn = this.allStems.filter(
+      (s) => s.targetSongId === songId && s.isBuiltIn
+    );
+    if (custom.length === 0) {
+      return builtIn;
+    }
+    if (builtIn.length === 0) {
       return custom;
     }
-    if (songId === 'endless-og') {
-      const ogCustom = this.getCustomStemsForSong('endless');
-      if (ogCustom.length > 0) return ogCustom;
-      const ogStems = this.allStems.filter((s) => s.targetSongId === 'endless-og');
-      if (ogStems.length > 0) return ogStems;
-      return this.allStems.filter((s) => s.targetSongId === 'endless');
+    // Merge custom overrides over built-in stems by role so all required roles stay present
+    const customRoles = new Set<LoadedOggStem['role']>(
+      custom.map((s) => s.role).filter((r) => r !== 'alt')
+    );
+    const hasCustomCombinedVoices = customRoles.has('voices-combined');
+    const keptBuiltIn = builtIn.filter((b) => {
+      if (customRoles.has(b.role)) return false;
+      if (
+        hasCustomCombinedVoices &&
+        (b.role === 'voices-bf' || b.role === 'voices-opp')
+      ) {
+        return false;
+      }
+      if (
+        b.role === 'voices-combined' &&
+        (customRoles.has('voices-bf') || customRoles.has('voices-opp'))
+      ) {
+        return false;
+      }
+      return true;
+    });
+    return [...keptBuiltIn, ...custom];
+  }
+
+  /**
+   * Returns the complete list of stems configured for a song (built-in + any custom overrides),
+   * even before WebAudio finishes decoding the PCM buffers, so the UI always shows all built-in stems immediately.
+   */
+  public getConfiguredStemsForSong(songId: SongId): {
+    id: string;
+    name: string;
+    durationSec: number;
+    role: LoadedOggStem['role'];
+    isBuiltIn: boolean;
+  }[] {
+    const custom = this.getCustomStemsForSong(songId);
+    const builtInSpecs = BUILT_IN_SONG_OGG_URLS[songId] || [];
+    const decodedBuiltIn = this.allStems.filter(
+      (s) => s.targetSongId === songId && s.isBuiltIn
+    );
+
+    const builtInItems = builtInSpecs.map((spec) => {
+      const stemId = `builtin:${songId}:${spec.name}`;
+      const decoded = decodedBuiltIn.find((s) => s.id === stemId);
+      return {
+        id: stemId,
+        name: spec.name,
+        durationSec: decoded ? decoded.durationSec : spec.durationSec,
+        role: spec.role,
+        isBuiltIn: true,
+      };
+    });
+
+    if (custom.length === 0) {
+      return builtInItems;
     }
-    return this.allStems.filter((s) => s.targetSongId === songId);
+
+    const customRoles = new Set<LoadedOggStem['role']>(
+      custom.map((s) => s.role).filter((r) => r !== 'alt')
+    );
+    const hasCustomCombinedVoices = customRoles.has('voices-combined');
+    const keptBuiltIn = builtInItems.filter((b) => {
+      if (customRoles.has(b.role)) return false;
+      if (
+        hasCustomCombinedVoices &&
+        (b.role === 'voices-bf' || b.role === 'voices-opp')
+      ) {
+        return false;
+      }
+      if (
+        b.role === 'voices-combined' &&
+        (customRoles.has('voices-bf') || customRoles.has('voices-opp'))
+      ) {
+        return false;
+      }
+      return true;
+    });
+
+    return [
+      ...keptBuiltIn,
+      ...custom.map((c) => ({
+        id: c.id,
+        name: c.name,
+        durationSec: c.durationSec,
+        role: c.role,
+        isBuiltIn: false,
+      })),
+    ];
   }
 
   public getAllLoadedStems(): LoadedOggStem[] {
@@ -395,9 +542,8 @@ class FnfSoundEngine {
   }
 
   public async restoreSavedEndlessStems(): Promise<LoadedOggStem[]> {
-    // Immediately kick off pre-fetching for Too Slow and You Can't Run
+    // Pre-fetch only the initial selected song on startup to avoid simultaneous audio decode spikes on Chromebooks
     this.preloadSongStems('too-slow').catch(() => {});
-    this.preloadSongStems('you-cant-run').catch(() => {});
 
     try {
       const db = await openStemsDb();
@@ -609,7 +755,7 @@ class FnfSoundEngine {
     this.stopSyncedStems();
     this.activeSongId = songId;
 
-    const syncStartAt = ctx.currentTime + 0.015;
+    const syncStartAt = ctx.currentTime + 0.005;
     const clampedOffset = Math.max(0, offsetSec);
 
     this.activeSourceNodes = stems.map((stem) => {
@@ -636,6 +782,7 @@ class FnfSoundEngine {
     this.stemStartCtxTime = syncStartAt - clampedOffset;
     this.stemPausedOffsetSec = clampedOffset;
     this.stemsPlaying = true;
+    this.playerVoiceMuted = false;
   }
 
   public pauseSyncedStems() {
@@ -677,15 +824,22 @@ class FnfSoundEngine {
 
   public getSyncedStemsTimeMs(): number | null {
     if (!this.stemsPlaying || !this.ctx) return null;
-    return (this.ctx.currentTime - this.stemStartCtxTime) * 1000;
+    const outLatency =
+      (this.ctx as AudioContext & { outputLatency?: number }).outputLatency ||
+      this.ctx.baseLatency ||
+      0;
+    return (this.ctx.currentTime - outLatency - this.stemStartCtxTime) * 1000;
   }
 
   // Mute BF vocal stem briefly on miss, restore on hit (classic FNF vocal stem behavior)
+  // Guarded by playerVoiceMuted flag so we don't flood Web Audio GainNode with setTargetAtTime events on every note hit
   public setPlayerVoiceStemMuted(muted: boolean) {
-    if (!this.ctx || !this.stemsPlaying) return;
+    if (!this.ctx || !this.stemsPlaying || this.playerVoiceMuted === muted) return;
+    this.playerVoiceMuted = muted;
     const now = this.ctx.currentTime;
     for (const node of this.activeSourceNodes) {
       if (node.role === 'voices-bf') {
+        node.gain.gain.cancelScheduledValues(now);
         node.gain.gain.setTargetAtTime(muted ? 0.0 : 0.9, now, 0.015);
       }
     }
@@ -701,22 +855,28 @@ class FnfSoundEngine {
     volume = 0.75,
     songId?: SongId
   ) {
-    // If real synchronized .ogg stems are playing for the active song, check which vocal stems are loaded
-    if (songId && this.stemsPlaying) {
-      const activeStems = this.getStemsForSong(songId);
-      const hasCombinedVoices = activeStems.some(
-        (s) => s.role === 'voices-combined'
-      );
-      const hasPlayerVoice =
-        hasCombinedVoices || activeStems.some((s) => s.role === 'voices-bf');
-      const hasOpponentVoice =
-        hasCombinedVoices || activeStems.some((s) => s.role === 'voices-opp');
+    // Fast-path check against activeSourceNodes when synchronized .ogg stems are playing
+    if (songId && this.stemsPlaying && this.activeSourceNodes.length > 0) {
+      let hasCombinedVoices = false;
+      let hasPlayerVoice = false;
+      let hasOpponentVoice = false;
+      for (let i = 0; i < this.activeSourceNodes.length; i++) {
+        const r = this.activeSourceNodes[i].role;
+        if (r === 'voices-combined') hasCombinedVoices = true;
+        else if (r === 'voices-bf') hasPlayerVoice = true;
+        else if (r === 'voices-opp') hasOpponentVoice = true;
+      }
 
-      if (isPlayer && hasPlayerVoice) {
-        this.setPlayerVoiceStemMuted(false);
+      if (isPlayer && (hasCombinedVoices || hasPlayerVoice)) {
+        if (this.playerVoiceMuted) {
+          this.setPlayerVoiceStemMuted(false);
+        }
+        if (special === 'ring') {
+          this.playRingCollect();
+        }
         return;
       }
-      if (!isPlayer && hasOpponentVoice) {
+      if (!isPlayer && (hasCombinedVoices || hasOpponentVoice)) {
         return;
       }
     }
@@ -895,13 +1055,11 @@ class FnfSoundEngine {
 
   public playBackingSubBeat(songId: SongId, subBeatIndex: number, volume = 0.7) {
     // If an instrumental .ogg stem is playing for this song, do not layer synthetic drums over it
-    if (
-      this.stemsPlaying &&
-      this.getStemsForSong(songId).some(
-        (s) => s.role === 'inst' || s.role === 'alt'
-      )
-    ) {
-      return;
+    if (this.stemsPlaying && this.activeSourceNodes.length > 0) {
+      for (let i = 0; i < this.activeSourceNodes.length; i++) {
+        const r = this.activeSourceNodes[i].role;
+        if (r === 'inst' || r === 'alt') return;
+      }
     }
 
     const ctx = this.ensureContext();
@@ -1070,14 +1228,17 @@ class FnfSoundEngine {
     const ctx = this.ensureContext();
     if (!ctx || !this.masterGain) return;
     const now = ctx.currentTime;
-    const bufferSize = ctx.sampleRate * 0.25;
-    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      data[i] = Math.random() * 2 - 1;
+    if (!this.cachedStaticBuffer) {
+      const bufferSize = Math.floor(ctx.sampleRate * 0.25);
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+      this.cachedStaticBuffer = buffer;
     }
     const noise = ctx.createBufferSource();
-    noise.buffer = buffer;
+    noise.buffer = this.cachedStaticBuffer;
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(0.22, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);

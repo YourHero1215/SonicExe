@@ -15,10 +15,17 @@ export const TOO_SLOW_ENCORE_EVENTS: SongEvent[] = [
   { timeMs: 0, type: 'focus_camera', value: '0' },
   { timeMs: 14222, type: 'focus_camera', value: '1' },
   { timeMs: 26667, type: 'focus_camera', value: '0' },
-  // At 43222.22ms: Fake Sonic (sonicexefake) transforms into Sonic.exe (sonic-exe)!
+  // Halfway between the 3rd-to-last note (40889ms) and 2nd-to-last note (41778ms) before the 42667ms blackout:
+  // Fake Sonic's sprite changes at 41333ms, followed by only his head twisting backwards toward you at 42467ms (0.20s before dark)!
+  { timeMs: 40889, type: 'focus_camera', value: '1' },
+  { timeMs: 41333, type: 'play_anim', value: 'gotcha' },
+  // At 42667ms (when BF hits the final note before transformation), flash & black out the screen until 44222ms!
+  { timeMs: 42667, type: 'too_slow_flash', value: 'blackout:44222' },
+  // At 43222.22ms: Fake Sonic (sonicexefake) transforms into Sonic.exe (sonic-exe) while screen is black!
   { timeMs: 43222, type: 'character_swap', value: 'sonic-exe:bf-encore' },
   { timeMs: 44111, type: 'zoom_camera', value: '1.2' },
   { timeMs: 44215, type: 'focus_camera', value: '1' },
+  // At 44222ms: Sonic initiates his transformation laugh and the screen goes back to normal!
   { timeMs: 44222, type: 'play_anim', value: 'singDOWN-alt' },
   { timeMs: 44417, type: 'play_anim', value: 'singDOWN-alt' },
   { timeMs: 44611, type: 'play_anim', value: 'singDOWN-alt' },
@@ -42,6 +49,7 @@ export const TOO_SLOW_ENCORE_EVENTS: SongEvent[] = [
   { timeMs: 93556, type: 'lyrics', value: "I'm gonna" },
   { timeMs: 94056, type: 'lyrics', value: "I'm gonna get-" },
   { timeMs: 94583, type: 'lyrics', value: "I'm gonna getcha!" },
+  { timeMs: 95450, type: 'sonicspook', value: 'spook' },
   { timeMs: 96333, type: 'lyrics', value: 'I' },
   { timeMs: 96944, type: 'lyrics', value: 'I am' },
   { timeMs: 98028, type: 'lyrics', value: 'I am GOD.' },

@@ -16,6 +16,7 @@ import {
 import {
   GameState,
   GameplaySettings,
+  getVideoQualityResolution,
   HighScoreRecord,
   KeybindConfig,
   PlayStats,
@@ -39,6 +40,8 @@ import {
   drawOpponentSprite,
   drawPlayerSprite,
   drawSpeakerGirlfriend,
+  formatPsychRating,
+  preloadSpritesForSong,
 } from './canvas/spriteRenderer';
 import {
   drawEndlessMajinStage,
@@ -126,6 +129,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    preloadSpritesForSong(selectedSongId);
     soundEngine
       .preloadSongStems(selectedSongId)
       .then(() => setLoadedStems([...soundEngine.getAllLoadedStems()]))
@@ -149,7 +153,11 @@ export default function App() {
       ghostTapping: true,
       practiceMode: false,
       botplay: false,
-      crtFilter: true,
+      crtFilter: false,
+      antiLagMode: false,
+      pixelRatioX: 3,
+      pixelRatioY: 2,
+      pixelRatioLock: 1.5,
       hitSoundVolume: 0.7,
       musicVolume: 0.75,
       modVersion: 'v3.0',
@@ -174,6 +182,35 @@ export default function App() {
       return {};
     }
   );
+  const [confirmResetAll, setConfirmResetAll] = useState<boolean>(false);
+  const [pendingDeleteSongId, setPendingDeleteSongId] =
+    useState<SongId | null>(null);
+
+  const handleEraseSongRecord = (songId: SongId) => {
+    soundEngine.playMenuTick(true);
+    setHighScores((prev) => {
+      const updated = { ...prev };
+      delete updated[songId];
+      try {
+        localStorage.setItem(STORAGE_KEY_SCORES, JSON.stringify(updated));
+      } catch {
+        // ignore
+      }
+      return updated;
+    });
+    setPendingDeleteSongId(null);
+  };
+
+  const handleResetAllRecords = () => {
+    soundEngine.playMenuTick(true);
+    setHighScores({});
+    setConfirmResetAll(false);
+    try {
+      localStorage.removeItem(STORAGE_KEY_SCORES);
+    } catch {
+      // ignore
+    }
+  };
 
   // Persist keybinds and settings
   useEffect(() => {
@@ -214,21 +251,31 @@ export default function App() {
     return true;
   });
 
-  // Animated Character Showcase Preview Canvas on Title Menu
+  // Animated Character Showcase Preview Canvas on Title Menu (throttled to 30FPS at 1:1 520x230 resolution for Chromebook efficiency)
   const previewCanvasRef = useRef<HTMLCanvasElement | null>(null);
   useEffect(() => {
     if (gameState !== 'TITLE_MENU') return;
     let rafId: number;
     const start = performance.now();
+    let lastDraw = 0;
 
     const animatePreview = (now: number) => {
+      const minInterval = settings.antiLagMode ? 64 : 32;
+      if (now - lastDraw < minInterval) {
+        rafId = requestAnimationFrame(animatePreview);
+        return;
+      }
+      lastDraw = now;
       const elapsed = now - start;
       const canvas = previewCanvasRef.current;
       if (canvas) {
         const ctx = canvas.getContext('2d');
         if (ctx) {
-          ctx.imageSmoothingEnabled = true;
-          ctx.imageSmoothingQuality = 'high';
+          const isLowQuality = canvas.width < 520;
+          ctx.imageSmoothingEnabled = !settings.antiLagMode && !isLowQuality;
+          if (!settings.antiLagMode && !isLowQuality) {
+            ctx.imageSmoothingQuality = 'medium';
+          }
           ctx.clearRect(0, 0, canvas.width, canvas.height);
 
           const logicalW = 520;
@@ -236,7 +283,14 @@ export default function App() {
           ctx.save();
           ctx.scale(canvas.width / logicalW, canvas.height / logicalH);
 
-          const gentlePan = Math.sin(elapsed * 0.0012) * 18;
+          // Zoom in to the central point of all stages matching the video framing (GF's boombox at 260, 145)
+          ctx.translate(260, 145);
+          ctx.scale(1.24, 1.24);
+          ctx.translate(-260, -145);
+
+          const gentlePan = settings.antiLagMode
+            ? 0
+            : Math.sin(elapsed * 0.0012) * 18;
           // Draw High-Definition multi-layer stage maps in Freeplay preview
           if (selectedSong.stageTheme === 'cursed-green-hill') {
             drawPolishedStageBackLayers(
@@ -247,7 +301,13 @@ export default function App() {
               gentlePan
             );
           } else if (selectedSong.stageTheme === 'ycr-crimson') {
-            drawYcrCrimsonStage(ctx, logicalW, logicalH, elapsed, gentlePan);
+            drawYcrCrimsonStage(
+              ctx,
+              logicalW,
+              logicalH,
+              settings.antiLagMode ? -1 : elapsed,
+              gentlePan
+            );
           } else if (selectedSong.stageTheme === 'endless-majin') {
             drawEndlessMajinStage(ctx, logicalW, logicalH, gentlePan);
           } else {
@@ -262,7 +322,10 @@ export default function App() {
               ? 'idle'
               : poses[poseCycle];
 
-          if (selectedSong.stageTheme !== 'endless-majin') {
+          if (
+            selectedSong.id !== 'endless' &&
+            selectedSong.id !== 'endless-og'
+          ) {
             ctx.save();
             ctx.translate(260, 148);
             ctx.scale(0.68, 0.68);
@@ -314,7 +377,7 @@ export default function App() {
 
     rafId = requestAnimationFrame(animatePreview);
     return () => cancelAnimationFrame(rafId);
-  }, [gameState, selectedSong]);
+  }, [gameState, selectedSong, settings.antiLagMode]);
 
   const startSong = (songId: SongId = selectedSongId) => {
     soundEngine.playMenuTick(true);
@@ -336,29 +399,38 @@ export default function App() {
     const acc = totalJudged > 0 ? calculateAccuracy(finalStats) : 100;
     const grade = calculateGrade(acc, finalStats.misses);
 
-    setHighScores((prev) => {
-      const existing = prev[selectedSong.id];
-      if (!existing || finalStats.score > existing.score) {
-        const updated = {
-          ...prev,
-          [selectedSong.id]: {
-            score: finalStats.score,
-            accuracy: Number(acc.toFixed(2)),
-            misses: finalStats.misses,
-            maxCombo: finalStats.maxCombo,
-            grade,
-            clearedAt: new Date().toLocaleDateString(),
-          },
-        };
-        try {
-          localStorage.setItem(STORAGE_KEY_SCORES, JSON.stringify(updated));
-        } catch {
-          // ignore
+    // Do NOT log a record in the menu screen if Botplay or Practice Mode was used at all during the song
+    const usedAssist =
+      Boolean(finalStats.usedBotplay) ||
+      Boolean(finalStats.usedPracticeMode) ||
+      settings.botplay ||
+      settings.practiceMode;
+
+    if (!usedAssist) {
+      setHighScores((prev) => {
+        const existing = prev[selectedSong.id];
+        if (!existing || finalStats.score > existing.score) {
+          const updated = {
+            ...prev,
+            [selectedSong.id]: {
+              score: finalStats.score,
+              accuracy: Number(acc.toFixed(2)),
+              misses: finalStats.misses,
+              maxCombo: finalStats.maxCombo,
+              grade,
+              clearedAt: new Date().toLocaleDateString(),
+            },
+          };
+          try {
+            localStorage.setItem(STORAGE_KEY_SCORES, JSON.stringify(updated));
+          } catch {
+            // ignore
+          }
+          return updated;
         }
-        return updated;
-      }
-      return prev;
-    });
+        return prev;
+      });
+    }
 
     setGameState('ROUND_SUMMARY');
   };
@@ -516,31 +588,64 @@ export default function App() {
                   </h1>
                 </div>
 
-                {/* Interactive Filter Tabs */}
-                <div className="flex items-center gap-1 p-1 bg-[#13111C] rounded-lg border border-white/10">
-                  {(
-                    [
-                      { id: 'all', label: 'All (7)' },
-                      { id: 'main', label: 'Main Week' },
-                      { id: 'encore', label: 'Encore' },
-                      { id: 'soundtest', label: 'Endless' },
-                    ] as { id: SongFilter; label: string }[]
-                  ).map((tab) => (
-                    <button
-                      key={tab.id}
-                      onClick={() => {
-                        soundEngine.playMenuTick(false);
-                        setSongFilter(tab.id);
-                      }}
-                      className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors whitespace-nowrap ${
-                        songFilter === tab.id
-                          ? 'bg-red-600 text-white shadow-sm'
-                          : 'text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
+                {/* Interactive Filter Tabs & Reset All Data Control */}
+                <div className="flex flex-wrap items-center gap-2">
+                  {Object.keys(highScores).length > 0 && (
+                    <div className="flex items-center gap-1">
+                      {confirmResetAll ? (
+                        <>
+                          <button
+                            onClick={handleResetAllRecords}
+                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition-colors whitespace-nowrap"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            Confirm Reset All
+                          </button>
+                          <button
+                            onClick={() => setConfirmResetAll(false)}
+                            className="px-2 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-slate-300 text-xs font-medium transition-colors whitespace-nowrap"
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => setConfirmResetAll(true)}
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-red-500/20 border border-white/10 hover:border-red-500/40 text-xs font-mono text-slate-300 hover:text-red-300 transition-colors whitespace-nowrap"
+                          title="Erase all saved song records"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          Reset All Data
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-1 p-1 bg-[#13111C] rounded-lg border border-white/10">
+                    {(
+                      [
+                        { id: 'all', label: 'All (7)' },
+                        { id: 'main', label: 'Main Week' },
+                        { id: 'encore', label: 'Encore' },
+                        { id: 'soundtest', label: 'Endless' },
+                      ] as { id: SongFilter; label: string }[]
+                    ).map((tab) => (
+                      <button
+                        key={tab.id}
+                        onClick={() => {
+                          soundEngine.playMenuTick(false);
+                          setSongFilter(tab.id);
+                        }}
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors whitespace-nowrap ${
+                          songFilter === tab.id
+                            ? 'bg-red-600 text-white shadow-sm'
+                            : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -593,15 +698,29 @@ export default function App() {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-4 pl-7 sm:pl-0">
+                        <div className="flex items-center gap-3 pl-7 sm:pl-0">
                           {record ? (
-                            <div className="text-right font-mono text-xs tabular-nums">
-                              <div className="text-emerald-400 font-bold">
-                                {record.accuracy}% ({calculateGrade(record.accuracy)})
+                            <div className="flex items-center gap-2.5">
+                              <div className="text-right font-mono text-xs tabular-nums">
+                                <div className="text-emerald-400 font-bold">
+                                  {record.accuracy}% ({calculateGrade(record.accuracy)})
+                                </div>
+                                <div className="text-slate-400">
+                                  {record.score.toLocaleString()} pts
+                                </div>
                               </div>
-                              <div className="text-slate-400">
-                                {record.score.toLocaleString()} pts
-                              </div>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  soundEngine.playMenuTick(false);
+                                  setPendingDeleteSongId(song.id);
+                                }}
+                                className="p-1.5 rounded-lg bg-white/5 hover:bg-red-500/20 border border-white/10 hover:border-red-500/40 text-slate-400 hover:text-red-300 transition-colors"
+                                title={`Erase saved record for ${song.title}`}
+                                aria-label={`Erase saved record for ${song.title}`}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
                             </div>
                           ) : (
                             <span className="text-xs text-slate-500 font-mono">
@@ -640,13 +759,33 @@ export default function App() {
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#12101B] via-black/30 to-transparent" />
 
-                  {/* Live Animated Opponent vs Boyfriend Sprite Preview (2x Retina Resolution) */}
-                  <canvas
-                    ref={previewCanvasRef}
-                    width={1040}
-                    height={460}
-                    className="absolute inset-0 w-full h-full pointer-events-none"
-                  />
+                  {/* Live Animated Opponent vs Boyfriend Sprite Preview */}
+                  {(() => {
+                    const vq = getVideoQualityResolution(
+                      settings.pixelRatioX,
+                      settings.pixelRatioY
+                    );
+                    const previewScale = Math.max(
+                      0.25,
+                      Math.min(1.25, vq.scale)
+                    );
+                    const pw = Math.round(520 * previewScale);
+                    const ph = Math.round(230 * previewScale);
+                    return (
+                      <canvas
+                        ref={previewCanvasRef}
+                        width={pw}
+                        height={ph}
+                        style={{
+                          imageRendering:
+                            vq.width < 1280 || settings.antiLagMode
+                              ? 'pixelated'
+                              : 'auto',
+                        }}
+                        className="absolute inset-0 w-full h-full pointer-events-none"
+                      />
+                    );
+                  })()}
 
                   <div className="absolute top-3 left-4 right-4 flex items-center justify-between text-xs font-mono text-slate-200">
                     <span>STAGE: {selectedSong.subtitle.toUpperCase()}</span>
@@ -734,11 +873,10 @@ export default function App() {
                     </div>
                   )}
 
-                  {/* Manual Music / Voice .OGG Adder Panel */}
+                  {/* Built-In & Custom .OGG Audio Stems Panel */}
                   {(() => {
-                    const activeSongStems = soundEngine.getStemsForSong(
-                      selectedSong.id
-                    );
+                    const activeSongStems =
+                      soundEngine.getConfiguredStemsForSong(selectedSong.id);
                     const customSongStems = soundEngine.getCustomStemsForSong(
                       selectedSong.id
                     );
@@ -749,14 +887,13 @@ export default function App() {
                             <div className="flex items-center gap-2">
                               <Disc className="w-3.5 h-3.5 text-red-400 animate-spin" />
                               <span className="text-xs font-bold text-white">
-                                Manual Music / Voice .OGG Adder
+                                Built-In &amp; Custom .OGG Audio Stems
                               </span>
                             </div>
                             <p className="text-[11px] text-slate-400 mt-0.5">
-                              Add <code className="text-slate-200">Inst.ogg</code> &{' '}
-                              <code className="text-slate-200">Voices.ogg</code> (files
-                              with &quot;you cant run&quot; auto-route to You Can&apos;t
-                              Run)
+                              All official <code className="text-slate-200">Inst</code> &amp;{' '}
+                              <code className="text-slate-200">Voices</code> .ogg files are
+                              automatically added and synced
                             </p>
                           </div>
 
@@ -900,6 +1037,135 @@ export default function App() {
                         {settings.practiceMode ? 'PRACTICE: ON' : 'PRACTICE: OFF'}
                       </button>
                     </div>
+
+                    {/* Anti-Lag Mode Toggle for Lower-End Devices */}
+                    <div className="flex items-center justify-between pt-2 border-t border-white/10">
+                      <div>
+                        <div className="text-xs font-bold text-emerald-400">
+                          Anti-Lag Mode (Lower-End Devices)
+                        </div>
+                        <div className="text-[11px] text-slate-400">
+                          Skips camera zoom resampling, text outlines & particles for locked 60 FPS
+                        </div>
+                      </div>
+                      <button
+                        onClick={() =>
+                          setSettings((s) => ({
+                            ...s,
+                            antiLagMode: !s.antiLagMode,
+                          }))
+                        }
+                        className={`px-3.5 py-1.5 rounded-lg text-xs font-mono font-bold border transition-colors whitespace-nowrap ${
+                          settings.antiLagMode
+                            ? 'bg-emerald-500 text-black border-emerald-400'
+                            : 'bg-white/5 text-slate-300 border-white/10 hover:text-white'
+                        }`}
+                      >
+                        {settings.antiLagMode ? 'ANTI-LAG: ON' : 'ANTI-LAG: OFF'}
+                      </button>
+                    </div>
+
+                    {/* Auto-Linked Pixel Ratio / Video Quality Control */}
+                    <div className="pt-2 border-t border-white/10 space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <div>
+                          <div className="text-xs font-bold text-white">
+                            Video Quality / Pixel Ratio (Auto-Matching)
+                          </div>
+                          <div className="text-[11px] text-slate-400">
+                            Change either number to auto-match the ratio and adjust video quality
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-mono font-bold text-cyan-300 whitespace-nowrap">
+                          {
+                            getVideoQualityResolution(
+                              settings.pixelRatioX,
+                              settings.pixelRatioY
+                            ).label
+                          }
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="number"
+                            step="any"
+                            min={0.1}
+                            value={settings.pixelRatioX}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value);
+                              if (!Number.isFinite(val) || val <= 0) return;
+                              const lock = settings.pixelRatioLock || 1.5;
+                              const nextY = Math.round((val / lock) * 100) / 100;
+                              setSettings((s) => ({
+                                ...s,
+                                pixelRatioX: val,
+                                pixelRatioY: nextY,
+                              }));
+                            }}
+                            aria-label="Pixel Ratio First Number"
+                            className="w-20 px-2 py-1 rounded bg-white/5 border border-white/15 text-white font-mono text-xs text-center focus:outline-none focus:border-red-500"
+                          />
+                          <span className="font-mono font-bold text-slate-400">
+                            :
+                          </span>
+                          <input
+                            type="number"
+                            step="any"
+                            min={0.1}
+                            value={settings.pixelRatioY}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value);
+                              if (!Number.isFinite(val) || val <= 0) return;
+                              const lock = settings.pixelRatioLock || 1.5;
+                              const nextX = Math.round(val * lock * 100) / 100;
+                              setSettings((s) => ({
+                                ...s,
+                                pixelRatioX: nextX,
+                                pixelRatioY: val,
+                              }));
+                            }}
+                            aria-label="Pixel Ratio Second Number"
+                            className="w-20 px-2 py-1 rounded bg-white/5 border border-white/15 text-white font-mono text-xs text-center focus:outline-none focus:border-red-500"
+                          />
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-1">
+                          {[
+                            { label: '0.75:0.5 (180p)', x: 0.75, y: 0.5, lock: 1.5 },
+                            { label: '1.5:1 (360p)', x: 1.5, y: 1, lock: 1.5 },
+                            { label: '2.25:1.5 (540p)', x: 2.25, y: 1.5, lock: 1.5 },
+                            { label: '3:2 (720p)', x: 3, y: 2, lock: 1.5 },
+                            { label: '4.5:3 (1080p)', x: 4.5, y: 3, lock: 1.5 },
+                          ].map((p) => {
+                            const active =
+                              settings.pixelRatioX === p.x &&
+                              settings.pixelRatioY === p.y;
+                            return (
+                              <button
+                                key={p.label}
+                                onClick={() =>
+                                  setSettings((s) => ({
+                                    ...s,
+                                    pixelRatioX: p.x,
+                                    pixelRatioY: p.y,
+                                    pixelRatioLock: p.lock,
+                                  }))
+                                }
+                                className={`px-2 py-1 rounded text-[11px] font-mono font-semibold border transition-colors ${
+                                  active
+                                    ? 'bg-red-600 text-white border-red-500'
+                                    : 'bg-white/5 text-slate-300 border-white/10 hover:text-white'
+                                }`}
+                              >
+                                {p.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Primary Launch CTA + Botplay Showcase Toggle */}
@@ -957,7 +1223,7 @@ export default function App() {
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600/20 hover:bg-red-600/30 text-red-200 border border-red-500/40 font-semibold transition-colors whitespace-nowrap"
                 >
                   <Upload className="w-3.5 h-3.5 text-red-400" />
-                  + Add Music / Voice .OGG ({loadedStems.filter((s) => s.targetSongId === selectedSong.id && !s.isBuiltIn).length || soundEngine.getStemsForSong(selectedSong.id).length})
+                  + Add Music / Voice .OGG ({loadedStems.filter((s) => s.targetSongId === selectedSong.id && !s.isBuiltIn).length || soundEngine.getConfiguredStemsForSong(selectedSong.id).length})
                 </button>
               </div>
 
@@ -1021,6 +1287,79 @@ export default function App() {
                 </button>
 
                 <button
+                  onClick={() =>
+                    setSettings((s) => ({
+                      ...s,
+                      antiLagMode: !s.antiLagMode,
+                    }))
+                  }
+                  className={`px-3 py-1.5 rounded-lg border text-xs font-mono font-bold transition-colors whitespace-nowrap ${
+                    settings.antiLagMode
+                      ? 'bg-emerald-500 text-black border-emerald-400'
+                      : 'bg-white/5 text-slate-300 border-white/10'
+                  }`}
+                  title="Anti-Lag Mode for lower-end devices"
+                >
+                  {settings.antiLagMode ? 'Anti-Lag: ON' : 'Anti-Lag: OFF'}
+                </button>
+
+                <div
+                  className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-mono text-slate-200"
+                  title="Auto-linked Video Quality / Pixel Ratio (changing one number updates the other and changes canvas video quality)"
+                >
+                  <span className="text-[10px] text-cyan-300 font-bold">
+                    QUALITY
+                  </span>
+                  <input
+                    type="number"
+                    step="any"
+                    min={0.1}
+                    value={settings.pixelRatioX}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value);
+                      if (!Number.isFinite(val) || val <= 0) return;
+                      const lock = settings.pixelRatioLock || 1.5;
+                      const nextY = Math.round((val / lock) * 100) / 100;
+                      setSettings((s) => ({
+                        ...s,
+                        pixelRatioX: val,
+                        pixelRatioY: nextY,
+                      }));
+                    }}
+                    className="w-12 bg-black/50 border border-white/15 rounded px-1 py-0.5 text-center text-white text-xs"
+                  />
+                  <span>:</span>
+                  <input
+                    type="number"
+                    step="any"
+                    min={0.1}
+                    value={settings.pixelRatioY}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value);
+                      if (!Number.isFinite(val) || val <= 0) return;
+                      const lock = settings.pixelRatioLock || 1.5;
+                      const nextX = Math.round(val * lock * 100) / 100;
+                      setSettings((s) => ({
+                        ...s,
+                        pixelRatioX: nextX,
+                        pixelRatioY: val,
+                      }));
+                    }}
+                    className="w-12 bg-black/50 border border-white/15 rounded px-1 py-0.5 text-center text-white text-xs"
+                  />
+                  <span className="text-[10px] text-slate-400 hidden sm:inline">
+                    (
+                    {
+                      getVideoQualityResolution(
+                        settings.pixelRatioX,
+                        settings.pixelRatioY
+                      ).height
+                    }
+                    p)
+                  </span>
+                </div>
+
+                <button
                   onClick={() => {
                     const nextVol = settings.musicVolume > 0 ? 0 : 0.75;
                     soundEngine.setVolume(nextVol);
@@ -1069,7 +1408,13 @@ export default function App() {
 
               {/* Pause Overlay Modal */}
               {gameState === 'PAUSED' && !isKeybindsOpen && (
-                <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/80 backdrop-blur-sm rounded-xl">
+                <div
+                  className={
+                    isFullscreen
+                      ? 'fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4'
+                      : 'absolute inset-0 z-30 flex items-center justify-center bg-black/80 backdrop-blur-sm rounded-xl p-4'
+                  }
+                >
                   <div className="w-full max-w-md p-6 rounded-xl bg-[#12101B] border border-white/15 text-center space-y-5 shadow-2xl">
                     <div>
                       <p className="text-xs font-mono text-red-400">
@@ -1160,7 +1505,7 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 font-mono tabular-nums">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 font-mono tabular-nums">
                 <div className="p-4 rounded-lg bg-[#09080D] border border-white/5">
                   <div className="text-xs text-slate-400">FINAL SCORE</div>
                   <div className="text-xl font-bold text-white mt-1">
@@ -1173,19 +1518,129 @@ export default function App() {
                     {lastRunStats.maxCombo}x
                   </div>
                 </div>
-                <div className="p-4 rounded-lg bg-[#09080D] border border-white/5">
-                  <div className="text-xs text-slate-400">SICK!! HITS</div>
-                  <div className="text-xl font-bold text-emerald-400 mt-1">
-                    {lastRunStats.sicks}
-                  </div>
-                </div>
-                <div className="p-4 rounded-lg bg-[#09080D] border border-white/5">
-                  <div className="text-xs text-slate-400">MISSES</div>
-                  <div className="text-xl font-bold text-red-400 mt-1">
-                    {lastRunStats.misses}
+                <div className="col-span-2 sm:col-span-1 p-4 rounded-lg bg-[#09080D] border border-white/5">
+                  <div className="text-xs text-slate-400">OVERALL RATING</div>
+                  <div className="text-base font-bold text-amber-300 mt-1.5 truncate">
+                    {formatPsychRating(lastRunStats)}
                   </div>
                 </div>
               </div>
+
+              {/* Total Judgement Breakdown: Sicks, Goods, Bads, Shits, and Misses */}
+              {(() => {
+                const totalJudged =
+                  lastRunStats.sicks +
+                  lastRunStats.goods +
+                  lastRunStats.bads +
+                  lastRunStats.shits +
+                  lastRunStats.misses;
+                const breakdownRows = [
+                  {
+                    label: 'SICKS',
+                    sub: '+350 pts · 100%',
+                    count: lastRunStats.sicks,
+                    textColor: 'text-cyan-400',
+                    barColor: 'bg-cyan-400',
+                    borderColor: 'border-cyan-500/30',
+                  },
+                  {
+                    label: 'GOODS',
+                    sub: '+200 pts · 75%',
+                    count: lastRunStats.goods,
+                    textColor: 'text-emerald-400',
+                    barColor: 'bg-emerald-400',
+                    borderColor: 'border-emerald-500/30',
+                  },
+                  {
+                    label: 'BADS',
+                    sub: '+50 pts · 50%',
+                    count: lastRunStats.bads,
+                    textColor: 'text-amber-400',
+                    barColor: 'bg-amber-400',
+                    borderColor: 'border-amber-500/30',
+                  },
+                  {
+                    label: 'SHITS',
+                    sub: '-50 pts · 25%',
+                    count: lastRunStats.shits,
+                    textColor: 'text-orange-400',
+                    barColor: 'bg-orange-400',
+                    borderColor: 'border-orange-500/30',
+                  },
+                  {
+                    label: 'MISSES',
+                    sub: '-75 pts · 0%',
+                    count: lastRunStats.misses,
+                    textColor: 'text-red-400',
+                    barColor: 'bg-red-500',
+                    borderColor: 'border-red-500/30',
+                  },
+                ];
+
+                return (
+                  <div className="p-5 rounded-xl bg-[#09080D] border border-white/10 space-y-4 font-mono tabular-nums">
+                    <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
+                      <span className="text-xs font-bold text-slate-200 tracking-wide">
+                        TOTAL JUDGEMENT BREAKDOWN
+                      </span>
+                      <span className="text-xs text-slate-400">
+                        {lastRunStats.totalNotesHit} / {totalJudged} Notes Hit
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                      {breakdownRows.map((row) => {
+                        const pct =
+                          totalJudged > 0
+                            ? Math.round((row.count / totalJudged) * 100)
+                            : 0;
+                        return (
+                          <div
+                            key={row.label}
+                            className={`p-3 rounded-lg bg-[#12101B] border ${row.borderColor} flex flex-col justify-between space-y-2`}
+                          >
+                            <div>
+                              <div className="flex items-center justify-between text-[11px]">
+                                <span className={`font-bold ${row.textColor}`}>
+                                  {row.label}
+                                </span>
+                                <span className="text-slate-500">{pct}%</span>
+                              </div>
+                              <div className="text-2xl font-extrabold text-white mt-1">
+                                {row.count}
+                              </div>
+                              <div className="text-[10px] text-slate-400 mt-0.5">
+                                {row.sub}
+                              </div>
+                            </div>
+                            <div className="h-1.5 w-full rounded-full bg-white/5 overflow-hidden">
+                              <div
+                                className={`h-full ${row.barColor}`}
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {(lastRunStats.usedBotplay ||
+                lastRunStats.usedPracticeMode ||
+                settings.botplay ||
+                settings.practiceMode) && (
+                <div className="px-4 py-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-xs font-mono text-amber-300">
+                  UNRANKED RUN ·{' '}
+                  {lastRunStats.usedBotplay && lastRunStats.usedPracticeMode
+                    ? 'Botplay & Practice Mode were'
+                    : lastRunStats.usedBotplay || settings.botplay
+                      ? 'Botplay was'
+                      : 'Practice Mode was'}{' '}
+                  used during this song. Record not saved to the menu screen.
+                </div>
+              )}
 
               <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
                 <button
@@ -1212,6 +1667,83 @@ export default function App() {
             </div>
           )}
       </main>
+
+      {/* Individual Song Record Deletion "Are you sure?" Confirmation Modal */}
+      {pendingDeleteSongId &&
+        (() => {
+          const targetSong = SONGS.find((s) => s.id === pendingDeleteSongId);
+          const targetRecord = highScores[pendingDeleteSongId];
+          if (!targetSong || !targetRecord) return null;
+          return (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+              onClick={() => setPendingDeleteSongId(null)}
+            >
+              <div
+                className="w-full max-w-md p-6 rounded-xl bg-[#12101B] border border-red-500/40 shadow-2xl space-y-5 text-center"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="mx-auto w-11 h-11 rounded-full bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-400">
+                  <Trash2 className="w-5 h-5" />
+                </div>
+
+                <div>
+                  <p className="text-xs font-mono text-red-400 tracking-wider">
+                    ERASE SONG RECORD
+                  </p>
+                  <h2 className="text-2xl font-extrabold text-white mt-1">
+                    Are you sure?
+                  </h2>
+                  <p className="text-xs text-slate-300 mt-2 leading-relaxed">
+                    This will permanently erase your saved high score and accuracy
+                    record for{' '}
+                    <span className="font-bold text-white">
+                      {targetSong.title}
+                    </span>
+                    .
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-lg bg-[#09080D] border border-white/10 font-mono text-xs flex items-center justify-between">
+                  <div className="text-left">
+                    <div className="text-slate-400 text-[10px]">TRACK</div>
+                    <div className="text-white font-bold mt-0.5">
+                      {targetSong.title}
+                    </div>
+                  </div>
+                  <div className="text-right tabular-nums">
+                    <div className="text-emerald-400 font-bold">
+                      {targetRecord.accuracy}% (
+                      {calculateGrade(targetRecord.accuracy)})
+                    </div>
+                    <div className="text-slate-400">
+                      {targetRecord.score.toLocaleString()} pts
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <button
+                    onClick={() => {
+                      soundEngine.playMenuTick(false);
+                      setPendingDeleteSongId(null);
+                    }}
+                    className="py-2.5 px-4 rounded-lg bg-white/10 hover:bg-white/15 text-slate-200 text-xs font-bold transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => handleEraseSongRecord(pendingDeleteSongId)}
+                    className="py-2.5 px-4 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Yes, Erase Data
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
       {/* Keybinds & Psych Engine Settings Modal */}
       <KeybindsModal

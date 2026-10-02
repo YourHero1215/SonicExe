@@ -13,27 +13,44 @@ export type SongId =
 
 export type Direction = 0 | 1 | 2 | 3; // 0 = Left, 1 = Down, 2 = Up, 3 = Right
 
-export type CharacterPose = 'idle' | 'left' | 'down' | 'up' | 'right' | 'miss' | 'laugh' | 'gotcha';
+export type CharacterPose =
+  | 'idle'
+  | 'left'
+  | 'down'
+  | 'up'
+  | 'right'
+  | 'miss'
+  | 'laugh'
+  | 'gotcha'
+  | 'scream';
 
 export type OpponentCharacterId =
   | 'sonic-exe'
   | 'sonicexefake'
   | 'ycr-exe'
+  | 'ycr-mad'
   | 'pixel-exe'
   | 'xenophanes'
+  | 'xenophanes-flipped'
   | 'tails-soul'
   | 'knuckles-soul'
   | 'eggman-soul'
   | 'majin'
   | 'majin-og';
 
-export type PlayerCharacterId = 'bf' | 'bf-encore' | 'bf-pixel';
+export type PlayerCharacterId =
+  | 'bf'
+  | 'bf-encore'
+  | 'bf-pixel'
+  | 'bf-perspective-right'
+  | 'bf-perspective-left';
 
 export type StageThemeId =
   | 'cursed-green-hill'
   | 'ycr-crimson'
   | 'ycr-pixel-genesis'
   | 'triple-trouble-void'
+  | 'triple-trouble-xeno'
   | 'endless-majin';
 
 export type NoteSpecialType = 'normal' | 'static' | 'phantom' | 'ring';
@@ -113,6 +130,10 @@ export interface GameplaySettings {
   practiceMode: boolean;
   botplay: boolean;
   crtFilter: boolean;
+  antiLagMode: boolean;
+  pixelRatioX: number;
+  pixelRatioY: number;
+  pixelRatioLock: number; // e.g. 16/9 (1.777778) or 1.5 (3:2 / 1.5:1)
   hitSoundVolume: number;
   musicVolume: number;
   modVersion: ModVersion;
@@ -133,6 +154,8 @@ export interface PlayStats {
   totalNotesEncountered: number;
   rings: number;
   health: number; // 0 to 100 (starts at 50)
+  usedBotplay?: boolean;
+  usedPracticeMode?: boolean;
 }
 
 export interface HighScoreRecord {
@@ -143,3 +166,46 @@ export interface HighScoreRecord {
   grade: string;
   clearedAt: string;
 }
+
+export function getVideoQualityResolution(
+  pixelRatioX: number,
+  pixelRatioY: number
+): { width: number; height: number; scale: number; label: string } {
+  const x = Number.isFinite(pixelRatioX) && pixelRatioX > 0 ? pixelRatioX : 3;
+  const y = Number.isFinite(pixelRatioY) && pixelRatioY > 0 ? pixelRatioY : 2;
+
+  let width: number;
+  let height: number;
+
+  if (x >= 120 || y >= 80) {
+    // Direct pixel count input (e.g. 640:360, 960:540, 1280:720, 1920:1080)
+    width = Math.max(160, Math.min(1920, Math.round(x / 2) * 2));
+    height = Math.max(90, Math.min(1080, Math.round(y / 2) * 2));
+  } else {
+    // Ratio quality scale (e.g. 0.75:0.5 => 180p, 1.5:1 => 360p, 2.25:1.5 => 540p, 3:2 => 720p HD, 4.5:3 => 1080p FHD)
+    const rawScale = y > 4.5 ? y / 9 : y / 2;
+    const clampedScale = Math.max(0.15, Math.min(1.5, rawScale));
+    width = Math.max(160, Math.round((1280 * clampedScale) / 2) * 2);
+    height = Math.max(90, Math.round((720 * clampedScale) / 2) * 2);
+  }
+
+  const scale = Math.round((height / 720) * 100) / 100;
+  const tier =
+    height >= 1080
+      ? '1080p FHD'
+      : height >= 720
+        ? '720p HD'
+        : height >= 540
+          ? '540p qHD'
+          : height >= 360
+            ? '360p SD'
+            : `${height}p Low`;
+
+  return {
+    width,
+    height,
+    scale,
+    label: `${width}×${height} (${tier})`,
+  };
+}
+

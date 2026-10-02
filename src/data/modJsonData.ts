@@ -1,11 +1,16 @@
 import {
   CharacterPose,
-  GirlfriendCharacterId,
-  NoteskinId,
   OpponentCharacterId,
   PlayerCharacterId,
-  StageConfigId,
 } from '../types/game';
+
+export type GirlfriendCharacterId = 'gf' | 'gf-encore' | 'gf-hidden';
+export type NoteskinId = 'exe-standard' | 'exe-pixel' | 'exe-majin';
+export type StageConfigId =
+  | 'Hill'
+  | 'Hill (Act 2)'
+  | 'Hill (Act 3)'
+  | 'Majin Forest';
 
 export interface ModAnimationDef {
   name: string;
@@ -211,10 +216,7 @@ export const RING_NOTE_JSON = {
 // ============================================================================
 // 2. ALL CHARACTER JSON CONFIGURATIONS FROM THE MOD
 // ============================================================================
-export const MOD_CHARACTERS: Record<
-  OpponentCharacterId | PlayerCharacterId | GirlfriendCharacterId,
-  ModCharacterJson
-> = {
+export const MOD_CHARACTERS: Record<string, ModCharacterJson> = {
   'gf-encore': {
     assetPath: 'characters/Main2GF',
     name: 'Girlfriend (Encore)',
@@ -1320,7 +1322,7 @@ export function getCharacterAnimationData(
     };
   }
 
-  const animNameMap: Record<CharacterPose, string> = {
+  const animNameMap: Record<string, string> = {
     idle: 'idle',
     left: 'singLEFT',
     down: 'singDOWN',
