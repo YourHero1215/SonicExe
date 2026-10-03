@@ -22,7 +22,8 @@ export type CharacterPose =
   | 'miss'
   | 'laugh'
   | 'gotcha'
-  | 'scream';
+  | 'scream'
+  | 'revealed';
 
 export type OpponentCharacterId =
   | 'sonic-exe'
@@ -42,10 +43,12 @@ export type PlayerCharacterId =
   | 'bf'
   | 'bf-encore'
   | 'bf-pixel'
+  | 'bf-endless'
   | 'bf-perspective-right'
   | 'bf-perspective-left';
 
 export type StageThemeId =
+  | 'green-hill-clean'
   | 'cursed-green-hill'
   | 'ycr-crimson'
   | 'ycr-pixel-genesis'
@@ -66,6 +69,7 @@ export interface ChartNote {
   hit?: boolean;
   missed?: boolean;
   holding?: boolean;
+  lastMissTickMs?: number;
 }
 
 export interface SongEvent {
@@ -126,6 +130,8 @@ export interface KeybindConfig {
 export interface GameplaySettings {
   downscroll: boolean;
   scrollSpeedMultiplier: number;
+  noteDensityMultiplier: number;
+  disableJumpscares: boolean;
   ghostTapping: boolean;
   practiceMode: boolean;
   botplay: boolean;

@@ -150,6 +150,8 @@ export default function App() {
     const defaults: GameplaySettings = {
       downscroll: false,
       scrollSpeedMultiplier: 1.0,
+      noteDensityMultiplier: 1.0,
+      disableJumpscares: false,
       ghostTapping: true,
       practiceMode: false,
       botplay: false,
@@ -1569,7 +1571,7 @@ export default function App() {
                   },
                   {
                     label: 'MISSES',
-                    sub: '-75 pts · 0%',
+                    sub: '-100 pts · 0%',
                     count: lastRunStats.misses,
                     textColor: 'text-red-400',
                     barColor: 'bg-red-500',

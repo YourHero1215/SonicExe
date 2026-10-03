@@ -1101,6 +1101,186 @@ function ensureTripleTroubleStageBuilt(): CachedTripleTroubleStage {
 /**
  * Draws the authentic multi-layer Hill stage (stages/hill/) for Too Slow & Too Slow Encore.
  */
+interface CachedCleanGreenHillStage {
+  skyAndClouds: HTMLCanvasElement;
+  backHillsAndOcean: HTMLCanvasElement;
+  midTreesAndLoops: HTMLCanvasElement;
+  cleanGrassAndFloor: HTMLCanvasElement;
+}
+let cachedCleanGreenHill: CachedCleanGreenHillStage | null = null;
+
+function ensureCleanGreenHillStageBuilt(): CachedCleanGreenHillStage {
+  if (cachedCleanGreenHill) return cachedCleanGreenHill;
+
+  const skyAndClouds = createOffscreen();
+  {
+    const ctx = getStageCtx(skyAndClouds);
+    const grad = ctx.createLinearGradient(0, 0, 0, 1080);
+    grad.addColorStop(0, '#1E6CE6');
+    grad.addColorStop(0.4, '#3895F8');
+    grad.addColorStop(0.85, '#68BFFC');
+    grad.addColorStop(1, '#82C8FC');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 1920, 1080);
+
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+    const clouds = [
+      { x: 180, y: 160, r: 90 },
+      { x: 270, y: 140, r: 110 },
+      { x: 380, y: 170, r: 85 },
+      { x: 780, y: 220, r: 120 },
+      { x: 920, y: 200, r: 140 },
+      { x: 1060, y: 230, r: 100 },
+      { x: 1480, y: 150, r: 95 },
+      { x: 1600, y: 130, r: 115 },
+      { x: 1720, y: 160, r: 90 },
+    ];
+    for (const cl of clouds) {
+      ctx.beginPath();
+      ctx.arc(cl.x, cl.y, cl.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  const backHillsAndOcean = createOffscreen();
+  {
+    const ctx = getStageCtx(backHillsAndOcean);
+    ctx.fillStyle = '#1070D8';
+    ctx.fillRect(0, 480, 1920, 160);
+
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+    for (let wy = 490; wy < 620; wy += 22) {
+      ctx.fillRect(0, wy, 1920, 3);
+    }
+
+    ctx.fillStyle = '#22A24A';
+    ctx.beginPath();
+    ctx.moveTo(0, 680);
+    const pts = [
+      [220, 480],
+      [420, 560],
+      [680, 440],
+      [920, 530],
+      [1180, 420],
+      [1420, 520],
+      [1680, 430],
+      [1920, 540],
+    ];
+    for (const [px, py] of pts) ctx.lineTo(px, py);
+    ctx.lineTo(1920, 1080);
+    ctx.lineTo(0, 1080);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.strokeStyle = '#167832';
+    ctx.lineWidth = 6;
+    ctx.stroke();
+  }
+
+  const midTreesAndLoops = createOffscreen();
+  {
+    const ctx = getStageCtx(midTreesAndLoops);
+    const specs = [
+      { bx: 220, by: 880, tx: 210, ty: 220, cx: 280, cy: 520, s: 1.15 },
+      { bx: 480, by: 840, tx: 500, ty: 280, cx: 430, cy: 540, s: 0.95 },
+      { bx: 1440, by: 850, tx: 1420, ty: 260, cx: 1500, cy: 530, s: 1.0 },
+      { bx: 1720, by: 890, tx: 1700, ty: 210, cx: 1780, cy: 510, s: 1.2 },
+    ];
+    for (const sp of specs) {
+      drawCartoonPalmTree(ctx, sp.bx, sp.by, sp.tx, sp.ty, sp.cx, sp.cy, sp.s);
+    }
+  }
+
+  const cleanGrassAndFloor = createOffscreen();
+  {
+    const ctx = getStageCtx(cleanGrassAndFloor);
+
+    ctx.fillStyle = '#B85C20';
+    ctx.fillRect(0, 590, 1920, 490);
+
+    const tileSize = 60;
+    ctx.fillStyle = '#D87C38';
+    for (let gy = 590; gy < 1080; gy += tileSize) {
+      for (let gx = 0; gx < 1920; gx += tileSize) {
+        if ((Math.floor(gx / tileSize) + Math.floor(gy / tileSize)) % 2 === 0) {
+          ctx.fillRect(gx, gy, tileSize, tileSize);
+        }
+      }
+    }
+
+    ctx.fillStyle = '#34D024';
+    ctx.beginPath();
+    ctx.moveTo(0, 595);
+    for (let x = 0; x <= 1920; x += 35) {
+      const bH = 572 + Math.sin(x * 0.08) * 12;
+      ctx.quadraticCurveTo(x + 12, bH - 18, x + 18, bH);
+      ctx.quadraticCurveTo(x + 26, bH + 10, x + 35, 595);
+    }
+    ctx.lineTo(1920, 1080);
+    ctx.lineTo(0, 1080);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.strokeStyle = '#1E8C12';
+    ctx.lineWidth = 5;
+    ctx.stroke();
+
+    const flowers = [140, 380, 820, 1120, 1540, 1780];
+    for (const fx of flowers) {
+      const fy = 575;
+      ctx.fillStyle = '#32D024';
+      ctx.fillRect(fx - 3, fy, 6, 25);
+      ctx.fillStyle = '#FACC15';
+      for (let a = 0; a < 6; a++) {
+        const ang = (a * Math.PI) / 3;
+        ctx.beginPath();
+        ctx.arc(fx + Math.cos(ang) * 14, fy + Math.sin(ang) * 14, 7, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.fillStyle = '#B91C1C';
+      ctx.beginPath();
+      ctx.arc(fx, fy, 9, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  cachedCleanGreenHill = {
+    skyAndClouds,
+    backHillsAndOcean,
+    midTreesAndLoops,
+    cleanGrassAndFloor,
+  };
+  return cachedCleanGreenHill;
+}
+
+export function drawGreenHillCleanStage(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  cameraOffsetX = 0
+) {
+  if (typeof document === 'undefined') return;
+  const ghImg = getYcrStageImage('/sprites/GreenHill.png');
+  if (ghImg) {
+    const bleedX = 56;
+    const bleedY = 24;
+    ctx.drawImage(
+      ghImg,
+      -bleedX + cameraOffsetX * 0.18,
+      -bleedY,
+      w + bleedX * 2,
+      h + bleedY * 2
+    );
+    return;
+  }
+
+  const st = ensureCleanGreenHillStageBuilt();
+  ctx.drawImage(st.skyAndClouds, 0, 0, w, h);
+  ctx.drawImage(st.backHillsAndOcean, cameraOffsetX * 0.35, 0, w, h);
+  ctx.drawImage(st.midTreesAndLoops, cameraOffsetX * 0.18, 0, w, h);
+  ctx.drawImage(st.cleanGrassAndFloor, 0, 0, w, h);
+}
+
 export function drawPolishedStageBackLayers(
   ctx: CanvasRenderingContext2D,
   w: number,
@@ -1217,19 +1397,15 @@ export function drawEndlessMajinStage(
   bgImg?: HTMLImageElement
 ) {
   if (typeof document === 'undefined') return;
-  const st = ensureMajinStageBuilt();
-
-  ctx.drawImage(st.skyAndMist, -cameraOffsetX * 0.2, 0, w, h);
 
   if (bgImg && bgImg.complete && bgImg.naturalWidth > 0) {
-    ctx.save();
-    ctx.globalAlpha = 0.45;
-    ctx.drawImage(bgImg, -cameraOffsetX * 0.35, 0, w, h);
-    ctx.restore();
+    ctx.drawImage(bgImg, 0, 0, w, h);
+  } else {
+    const st = ensureMajinStageBuilt();
+    ctx.drawImage(st.skyAndMist, -cameraOffsetX * 0.2, 0, w, h);
+    ctx.drawImage(st.backFunhouseTrees, -cameraOffsetX * 0.5, 0, w, h);
+    ctx.drawImage(st.groundAndFrontTrees, -cameraOffsetX * 0.85, 0, w, h);
   }
-
-  ctx.drawImage(st.backFunhouseTrees, -cameraOffsetX * 0.5, 0, w, h);
-  ctx.drawImage(st.groundAndFrontTrees, -cameraOffsetX * 0.85, 0, w, h);
 }
 
 /**

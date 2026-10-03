@@ -92,14 +92,14 @@ const RAW_TRIPLE_TROUBLE_EVENTS: SongEvent[] = [
   { timeMs: 441320, type: 'focus_camera', value: '0' },
   { timeMs: 452887, type: 'focus_camera', value: '1' },
   { timeMs: 476019, type: 'focus_camera', value: '0' },
-  { timeMs: 106798, type: 'character_swap', value: 'xenophanes:bf-perspective-right' },
+  { timeMs: 106798, type: 'character_swap', value: 'xenophanes:bf-perspective-left' },
   { timeMs: 106798, type: 'stage_swap', value: 'triple-trouble-xeno' },
   { timeMs: 133116, type: 'sonicspook', value: 'knuckles' },
   { timeMs: 133116, type: 'flip_lanes', value: 'true' },
   { timeMs: 133116, type: 'stage_swap', value: 'triple-trouble-void' },
   { timeMs: 133116, type: 'character_swap', value: 'knuckles-soul:bf' },
   { timeMs: 238356, type: 'stage_swap', value: 'triple-trouble-xeno' },
-  { timeMs: 238356, type: 'character_swap', value: 'xenophanes-flipped:bf-perspective-left' },
+  { timeMs: 238356, type: 'character_swap', value: 'xenophanes:bf-perspective-left' },
   { timeMs: 290942, type: 'sonicspook', value: 'eggman' },
   { timeMs: 290942, type: 'flip_lanes', value: 'false' },
   { timeMs: 290942, type: 'stage_swap', value: 'triple-trouble-void' },
@@ -108,7 +108,7 @@ const RAW_TRIPLE_TROUBLE_EVENTS: SongEvent[] = [
   { timeMs: 307568, type: 'play_anim', value: 'jijijija' },
   { timeMs: 400068, type: 'play_anim', value: 'jijijija' },
   { timeMs: 406610, type: 'stage_swap', value: 'triple-trouble-xeno' },
-  { timeMs: 406610, type: 'character_swap', value: 'xenophanes:bf-perspective-right' },
+  { timeMs: 406610, type: 'character_swap', value: 'xenophanes:bf-perspective-left' },
 ];
 
 export const TRIPLE_TROUBLE_EVENTS: SongEvent[] = [...RAW_TRIPLE_TROUBLE_EVENTS].sort(

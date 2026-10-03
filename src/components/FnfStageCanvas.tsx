@@ -40,12 +40,105 @@ import {
 } from '../canvas/spriteRenderer';
 import {
   drawEndlessMajinStage,
+  drawGreenHillCleanStage,
   drawPolishedStageBackLayers,
   drawPolishedStageForegroundLayer,
   drawTripleTroubleForegroundLayer,
   drawTripleTroubleStage,
   drawYcrCrimsonStage,
 } from '../canvas/polishedStageRenderer';
+
+// Utility to scale note density per measure based on settings.noteDensityMultiplier
+function scaleChartNoteDensity(
+  baseChart: { notes: ChartNote[]; events: SongEvent[] },
+  densityMultiplier: number
+): { notes: ChartNote[]; events: SongEvent[] } {
+  const mult = Math.max(0.5, Math.min(2.5, densityMultiplier || 1.0));
+  if (mult === 1.0) {
+    return {
+      notes: baseChart.notes.map((n) => ({ ...n })),
+      events: baseChart.events,
+    };
+  }
+
+  const origNotes = baseChart.notes;
+  let scaledNotes: ChartNote[] = [];
+
+  if (mult < 1.0) {
+    // Subsample notes to decrease notes per measure
+    const step = Math.round(1 / mult);
+    scaledNotes = origNotes
+      .filter((note, idx) => {
+        if (note.special === 'ring') return true;
+        return idx % step === 0;
+      })
+      .map((n) => ({ ...n }));
+  } else {
+    // Increase notes per measure by inserting intermediate rhythm notes
+    const extraRatio = mult - 1.0;
+    scaledNotes = origNotes.map((n) => ({ ...n }));
+    const newExtraNotes: ChartNote[] = [];
+
+    for (let i = 0; i < origNotes.length - 1; i++) {
+      const n1 = origNotes[i];
+      const n2 = origNotes[i + 1];
+      if (
+        n1.isPlayer === n2.isPlayer &&
+        n1.lane === n2.lane &&
+        n2.timeMs - n1.timeMs > 180 &&
+        n2.timeMs - n1.timeMs < 1200
+      ) {
+        if (Math.random() < extraRatio * 0.85) {
+          const midTime = Math.round((n1.timeMs + n2.timeMs) / 2);
+          newExtraNotes.push({
+            id: `extra_${n1.lane}_${midTime}_${Math.random()}`,
+            timeMs: midTime,
+            lane: n1.lane,
+            isPlayer: n1.isPlayer,
+            sustainMs: 0,
+            pitchMidi: n1.pitchMidi,
+            special: 'normal',
+            hit: false,
+            missed: false,
+            holding: false,
+          });
+        }
+      }
+    }
+    scaledNotes = [...scaledNotes, ...newExtraNotes].sort(
+      (a, b) => a.timeMs - b.timeMs
+    );
+  }
+
+  return { notes: scaledNotes, events: baseChart.events };
+}
+
+// Utility to render TV VHS static screen transition when jumpscares are disabled
+function drawFullStaticTransition(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  progress: number
+) {
+  ctx.save();
+  const alpha = Math.max(0, Math.min(1, progress));
+  ctx.fillStyle = `rgba(10, 10, 15, ${alpha * 0.96})`;
+  ctx.fillRect(0, 0, w, h);
+
+  const numLines = 55;
+  for (let i = 0; i < numLines; i++) {
+    const y = Math.random() * h;
+    const lh = 3 + Math.random() * 8;
+    const val = Math.floor(180 + Math.random() * 75);
+    ctx.fillStyle = `rgba(${val}, ${val}, ${val}, ${alpha * 0.85})`;
+    ctx.fillRect(0, y, w, lh);
+  }
+
+  // Red static glitch bar
+  ctx.fillStyle = `rgba(220, 38, 38, ${alpha * 0.45})`;
+  ctx.fillRect(0, Math.random() * h, w, 10);
+  ctx.restore();
+}
 
 interface FnfStageCanvasProps {
   song: SongMetadata;
@@ -197,6 +290,7 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
 
   const staticAlphaRef = useRef<number>(0);
   const redFlashAlphaRef = useRef<number>(0);
+  const screenShakeIntensityRef = useRef<number>(0);
   const whiteFlashAlphaRef = useRef<number>(0);
   const blackoutUntilMsRef = useRef<number>(-Infinity);
   const activeLyricsRef = useRef<string>('');
@@ -229,12 +323,29 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
     }
   }, [settings.botplay, settings.practiceMode]);
 
+  // Update note density dynamically in real-time when settings change
+  useEffect(() => {
+    if (rawBaseChartRef.current) {
+      chartRef.current = scaleChartNoteDensity(
+        rawBaseChartRef.current,
+        settings.noteDensityMultiplier || 1.0
+      );
+    }
+  }, [settings.noteDensityMultiplier]);
+
+  const rawBaseChartRef = useRef<{ notes: ChartNote[]; events: SongEvent[] } | null>(null);
+
   // Initialize chart and reset synced .ogg stems on song mount
   useEffect(() => {
     soundEngine.stopSyncedStems(true);
     soundEngine.preloadSongStems(song.id).catch(() => {});
     preloadSpritesForSong(song.id);
-    chartRef.current = generateSongChartAndEvents(song.id);
+    const baseChart = generateSongChartAndEvents(song.id);
+    rawBaseChartRef.current = baseChart;
+    chartRef.current = scaleChartNoteDensity(
+      baseChart,
+      settings.noteDensityMultiplier || 1.0
+    );
     firstActiveNoteIdxRef.current = 0;
     nextEventIdxRef.current = 0;
     songTimeMsRef.current = -2000;
@@ -374,7 +485,7 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
           st.score -= 150;
           st.health = Math.max(
             settings.practiceMode ? 1 : 0,
-            st.health - 18
+            st.health - 12.6
           );
           phantomDrainUntilMsRef.current = Math.max(
             phantomDrainUntilMsRef.current,
@@ -442,6 +553,8 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
         } else {
           tier = 'SHIT';
           st.shits += 1;
+          st.combo = 0;
+          st.misses += 1;
           scoreGain = -50;
           hpGain = settings.practiceMode ? 0 : -1.0;
         }
@@ -455,7 +568,15 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
           100,
           Math.max(settings.practiceMode ? 1 : 0, st.health + hpGain)
         );
-        scoreTextZoomRef.current = 1.075;
+        scoreTextZoomRef.current = st.combo % 50 === 0 && st.combo > 0 ? 1.38 : 1.075;
+
+        if (st.combo % 50 === 0 && st.combo > 0) {
+          dramaticBannerRef.current = {
+            text: `🔥 ${st.combo} COMBO STREAK! 🔥`,
+            untilMs: nowMs + 1200,
+            isMajin: false,
+          };
+        }
 
         playerPoseRef.current = {
           pose: DIRECTION_FROM_POSE[lane],
@@ -492,8 +613,8 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
           st.misses += 1;
           st.totalNotesEncountered += 1;
           st.combo = 0;
-          st.score -= 75;
-          st.health = Math.max(0, st.health - 4.5);
+          st.score -= 100;
+          st.health = Math.max(0, st.health - 3.15);
           playerPoseRef.current = {
             pose: 'miss',
             startedMs: nowMs,
@@ -520,7 +641,17 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.repeat) return;
 
-      if (e.code === keybinds.pause || e.code === 'Escape') {
+      if (e.code === 'Escape') {
+        e.preventDefault();
+        if (isFullscreen || Boolean(document.fullscreenElement)) {
+          onToggleFullscreen();
+        } else {
+          onPauseToggle();
+        }
+        return;
+      }
+
+      if (e.code === keybinds.pause) {
         e.preventDefault();
         onPauseToggle();
         return;
@@ -738,11 +869,55 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
             if (ev.type === 'stage_swap') {
               stageThemeRef.current = ev.value as StageThemeId;
               redFlashAlphaRef.current = 0.75;
+              if (song.id === 'triple-trouble') {
+                screenShakeIntensityRef.current = 36;
+              }
+              const isSonicSection =
+                song.id === 'triple-trouble' &&
+                (stageThemeRef.current === 'triple-trouble-xeno' ||
+                  opponentCharRef.current === 'xenophanes' ||
+                  opponentCharRef.current === 'xenophanes-flipped');
+              const isFlippedLayout =
+                isSonicSection || lanesFlippedRef.current;
+              const flippedSign = isFlippedLayout ? -1 : 1;
+              const isOppFocus = cameraFocusedCharRef.current === 'opponent';
+              cameraTargetFocusXRef.current =
+                (isOppFocus ? -85 : 85) * flippedSign;
             } else if (ev.type === 'character_swap') {
               const [opp, plr] = ev.value.split(':');
               if (opp) opponentCharRef.current = opp as OpponentCharacterId;
               if (plr) playerCharRef.current = plr as PlayerCharacterId;
               redFlashAlphaRef.current = 0.75;
+              if (song.id === 'triple-trouble') {
+                screenShakeIntensityRef.current = 36;
+                let banner = '⚡ TRIPLE TROUBLE PHASE SHIFT! ⚡';
+                const oppName = (opp || '').toLowerCase();
+                if (oppName.includes('xeno')) {
+                  banner = '⚡ XENOPHANES PHASE! ⚡';
+                } else if (oppName.includes('knuckles')) {
+                  banner = '🔥 KNUCKLES.EXE PHASE! 🔥';
+                } else if (oppName.includes('eggman')) {
+                  banner = '⚡ EGGMAN.EXE PHASE! ⚡';
+                } else if (oppName.includes('tails')) {
+                  banner = '🩸 TAILS.EXE PHASE! 🩸';
+                }
+                dramaticBannerRef.current = {
+                  text: banner,
+                  untilMs: curMs + 1800,
+                  isMajin: false,
+                };
+              }
+              const isSonicSection =
+                song.id === 'triple-trouble' &&
+                (stageThemeRef.current === 'triple-trouble-xeno' ||
+                  opponentCharRef.current === 'xenophanes' ||
+                  opponentCharRef.current === 'xenophanes-flipped');
+              const isFlippedLayout =
+                isSonicSection || lanesFlippedRef.current;
+              const flippedSign = isFlippedLayout ? -1 : 1;
+              const isOppFocus = cameraFocusedCharRef.current === 'opponent';
+              cameraTargetFocusXRef.current =
+                (isOppFocus ? -85 : 85) * flippedSign;
               if (song.id === 'too-slow-encore') {
                 dramaticBannerRef.current = {
                   text: 'SONIC.EXE REVEALED!',
@@ -753,6 +928,17 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
               }
             } else if (ev.type === 'flip_lanes') {
               lanesFlippedRef.current = ev.value === 'true';
+              const isSonicSection =
+                song.id === 'triple-trouble' &&
+                (stageThemeRef.current === 'triple-trouble-xeno' ||
+                  opponentCharRef.current === 'xenophanes' ||
+                  opponentCharRef.current === 'xenophanes-flipped');
+              const isFlippedLayout =
+                isSonicSection || lanesFlippedRef.current;
+              const flippedSign = isFlippedLayout ? -1 : 1;
+              const isOppFocus = cameraFocusedCharRef.current === 'opponent';
+              cameraTargetFocusXRef.current =
+                (isOppFocus ? -85 : 85) * flippedSign;
             } else if (ev.type === 'strumline_spin') {
               const rawDur = parseFloat(ev.value) || 350;
               strumSpinUntilMsRef.current = {
@@ -780,10 +966,17 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
                 }
               }
             } else if (ev.type === 'focus_camera') {
-              // char 1 = Opponent (left), char 0 = Player (right)
+              // char 1 = Opponent, char 0 = Player
               const isOppFocus = ev.value === '1';
               cameraFocusedCharRef.current = isOppFocus ? 'opponent' : 'player';
-              const flippedSign = lanesFlippedRef.current ? -1 : 1;
+              const isSonicSection =
+                song.id === 'triple-trouble' &&
+                (stageThemeRef.current === 'triple-trouble-xeno' ||
+                  opponentCharRef.current === 'xenophanes' ||
+                  opponentCharRef.current === 'xenophanes-flipped');
+              const isFlippedLayout =
+                isSonicSection || lanesFlippedRef.current;
+              const flippedSign = isFlippedLayout ? -1 : 1;
               cameraTargetFocusXRef.current =
                 (isOppFocus ? -85 : 85) * flippedSign;
               cameraTargetFocusYRef.current = isOppFocus ? -10 : 8;
@@ -883,17 +1076,29 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
             } else if (ev.type === 'sonicspook') {
               spookTypeRef.current = ev.value || 'sonic';
               spookUntilMsRef.current = curMs + 550;
-              redFlashAlphaRef.current = 0.95;
-              staticAlphaRef.current = 0.65;
-              soundEngine.playStaticBurst();
+              if (settings.disableJumpscares) {
+                staticAlphaRef.current = 1.0;
+                redFlashAlphaRef.current = 0.2;
+              } else {
+                redFlashAlphaRef.current = 0.95;
+                staticAlphaRef.current = 0.65;
+                soundEngine.playStaticBurst();
+              }
+              if (song.id === 'triple-trouble') {
+                screenShakeIntensityRef.current = 38;
+              }
             } else if (ev.type === 'screamer_text') {
-              dramaticBannerRef.current = {
-                text: ev.value,
-                untilMs: curMs + 1600,
-                isMajin: false,
-              };
-              soundEngine.playStaticBurst();
-              staticAlphaRef.current = 0.45;
+              if (settings.disableJumpscares) {
+                staticAlphaRef.current = 1.0;
+              } else {
+                dramaticBannerRef.current = {
+                  text: ev.value,
+                  untilMs: curMs + 1600,
+                  isMajin: false,
+                };
+                soundEngine.playStaticBurst();
+                staticAlphaRef.current = 0.45;
+              }
             } else if (ev.type === 'majin_countdown') {
               dramaticBannerRef.current = {
                 text: ev.value,
@@ -974,12 +1179,50 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
         for (let ni = firstActiveNoteIdxRef.current; ni < notes.length; ni++) {
           const note = notes[ni];
           if (note.timeMs - curMs > 300) break;
-          if (note.hit || note.missed) {
-            if (note.isPlayer && note.holding) {
-              if (
-                curMs <= note.timeMs + note.sustainMs &&
-                (pressedLanesRef.current[note.lane] || settings.botplay)
-              ) {
+
+          // Player Hold / Sustain Note Continuous Logic (Active whenever curMs >= note.timeMs && curMs <= note.timeMs + note.sustainMs)
+          if (note.isPlayer && note.sustainMs > 0 && curMs >= note.timeMs) {
+            const sustainEndMs = note.timeMs + note.sustainMs;
+            const isKeyHeld = pressedLanesRef.current[note.lane] || settings.botplay;
+
+            if (curMs <= sustainEndMs) {
+              // Auto-hit initial note head for Botplay if it hasn't been hit yet
+              if (settings.botplay && !note.hit && !note.missed) {
+                note.hit = true;
+                note.holding = true;
+                const st = statsRef.current;
+                st.totalNotesHit += 1;
+                st.totalNotesEncountered += 1;
+                st.combo += 1;
+                if (st.combo > st.maxCombo) st.maxCombo = st.combo;
+                st.score += 350;
+                st.sicks += 1;
+                hitSplashesRef.current.push({
+                  lane: note.lane,
+                  timeMs: curMs,
+                  color: LANE_COLORS[note.lane],
+                });
+                judgementPopupRef.current = {
+                  text: 'SICK!!',
+                  combo: st.combo,
+                  timeMs: curMs,
+                  diffMs: 0,
+                };
+                soundEngine.playVocalNote(
+                  note.pitchMidi,
+                  true,
+                  playerCharRef.current,
+                  Math.max(170, note.sustainMs),
+                  note.special,
+                  settings.musicVolume,
+                  song.id
+                );
+              }
+
+              if (isKeyHeld) {
+                note.holding = true;
+                // Continuously add score while holding sustain notes (+15 score per 60fps frame)
+                statsRef.current.score += Math.round(dt * 0.25);
                 statsRef.current.health = Math.min(
                   100,
                   statsRef.current.health + dt * 0.004
@@ -991,12 +1234,43 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
                 playerPoseRef.current = {
                   pose: DIRECTION_FROM_POSE[note.lane],
                   startedMs: holdRepeatStartedMs,
-                  untilMs: curMs + 120,
+                  untilMs: curMs + 140,
                 };
-              } else if (curMs > note.timeMs + note.sustainMs) {
+                playerConfirmUntilMsRef.current[note.lane] = curMs + 140;
+                note.lastMissTickMs = 0;
+              } else if (!isKeyHeld) {
+                // Unheld during sustain note duration
                 note.holding = false;
+                const isNearEnd = curMs >= sustainEndMs - 200;
+
+                // As long as the player landed the head of the note as Sick, Good, or Bad (note.hit === true)
+                // OR released within 0.2s (200ms) of the end: NO COMBO BREAK and NO MISS INCREMENT!
+                if (note.hit || isNearEnd) {
+                  const holdDrain = dt * 0.005;
+                  statsRef.current.health = Math.max(
+                    0,
+                    statsRef.current.health - holdDrain
+                  );
+                } else {
+                  // Unheld before note head was hit
+                  const holdDrain = dt * 0.012;
+                  statsRef.current.health = Math.max(
+                    0,
+                    statsRef.current.health - holdDrain
+                  );
+                }
+
+                if (statsRef.current.health <= 0 && !settings.practiceMode) {
+                  onGameOver({ ...statsRef.current });
+                }
               }
-            } else if (!note.isPlayer && note.holding) {
+            } else {
+              note.holding = false;
+            }
+          }
+
+          if (note.hit || note.missed) {
+            if (!note.isPlayer && note.holding) {
               // Drain health gently while the opponent holds sustain notes
               if (curMs <= note.timeMs + note.sustainMs) {
                 if (statsRef.current.health > 15) {
@@ -1080,7 +1354,15 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
             st.score += 350;
             if (note.special === 'ring') st.rings += 1;
             st.health = Math.min(100, st.health + 0.84);
-            scoreTextZoomRef.current = 1.075;
+            scoreTextZoomRef.current = st.combo % 50 === 0 && st.combo > 0 ? 1.38 : 1.075;
+
+            if (st.combo % 50 === 0 && st.combo > 0) {
+              dramaticBannerRef.current = {
+                text: `🔥 ${st.combo} COMBO STREAK! 🔥`,
+                untilMs: curMs + 1200,
+                isMajin: false,
+              };
+            }
 
             playerPoseRef.current = {
               pose: DIRECTION_FROM_POSE[note.lane],
@@ -1112,7 +1394,7 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
             continue;
           }
 
-          // Player Missed Note (Passed > 165ms ago): exact -75 points & 0% accuracy weight
+          // Player Missed Note (Passed > 165ms ago): exact -100 points & 0% accuracy weight
           if (note.isPlayer && curMs - note.timeMs > 165) {
             note.missed = true;
             // In Practice Mode, Phantom Note, or Ring Note: remove misses & prevent game over!
@@ -1132,8 +1414,8 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
             } else {
               st.misses += 1;
               st.combo = 0;
-              st.score -= 75;
-              const hpPenalty = note.special === 'static' ? 14 : 7.5;
+              st.score -= 100;
+              const hpPenalty = note.special === 'static' ? 9.8 : 5.25;
               st.health = Math.max(0, st.health - hpPenalty);
               if (note.special === 'static') {
                 staticAlphaRef.current = 0.75;
@@ -1237,14 +1519,44 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
           }
           if (!isPaused) {
             camBeatPulseRef.current *= Math.exp(-dt * 0.0065);
+            screenShakeIntensityRef.current *= Math.exp(-dt * 0.005);
           }
+          let shakeX = 0;
+          let shakeY = 0;
+          if (screenShakeIntensityRef.current > 0.05) {
+            const angle = Math.random() * Math.PI * 2;
+            const dist =
+              screenShakeIntensityRef.current * (0.45 + Math.random() * 0.55);
+            shakeX = Math.cos(angle) * dist;
+            shakeY = Math.sin(angle) * dist;
+          }
+
           const beatZoom = 1 + (isAntiLag ? 0 : camBeatPulseRef.current);
 
-          const isHillStage = stageThemeRef.current === 'cursed-green-hill';
+          const isHillStage =
+            stageThemeRef.current === 'cursed-green-hill' ||
+            stageThemeRef.current === 'green-hill-clean';
           const isYcrStage = stageThemeRef.current === 'ycr-crimson';
           const isHillOrYcr = isHillStage || isYcrStage;
           const isPixelStage = stageThemeRef.current === 'ycr-pixel-genesis';
-          const baseStageZoom = isPixelStage ? 1.24 : 1.36;
+          const isSonicSection =
+            song.id === 'triple-trouble' &&
+            (stageThemeRef.current === 'triple-trouble-xeno' ||
+              opponentCharRef.current === 'xenophanes' ||
+              opponentCharRef.current === 'xenophanes-flipped');
+
+          const isSonicFirstTurn =
+            song.id === 'triple-trouble' &&
+            (stageThemeRef.current === 'triple-trouble-xeno' ||
+              opponentCharRef.current === 'xenophanes' ||
+              opponentCharRef.current === 'xenophanes-flipped') &&
+            curMs < 234000;
+
+          const baseStageZoom = isPixelStage
+            ? 1.48
+            : isSonicSection
+              ? 1.36
+              : 1.72;
           const camZoom = isAntiLag
             ? baseStageZoom
             : isPixelStage
@@ -1263,8 +1575,8 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
 
           ctx.save();
           ctx.translate(
-            w / 2 - camOffsetX * 0.95,
-            zoomPivotY - camOffsetY * 0.85
+            w / 2 - camOffsetX * 0.95 + shakeX,
+            zoomPivotY - camOffsetY * 0.85 + shakeY
           );
           ctx.scale(camZoom, camZoom);
           ctx.translate(-w / 2, -zoomPivotY);
@@ -1273,7 +1585,9 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
           const bgImg = isAntiLag
             ? undefined
             : stageImagesRef.current[song.stageImage];
-          if (isHillStage) {
+          if (stageThemeRef.current === 'green-hill-clean') {
+            drawGreenHillCleanStage(ctx, w, h, camOffsetX);
+          } else if (isHillStage) {
             drawPolishedStageBackLayers(ctx, w, h, song.id, camOffsetX);
           } else if (isPixelStage) {
             drawPixelGenesisStage(ctx, w, h, curMs);
@@ -1289,14 +1603,23 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
           } else if (stageThemeRef.current === 'endless-majin') {
             drawEndlessMajinStage(ctx, w, h, camOffsetX, bgImg);
           } else {
-            drawTripleTroubleStage(
-              ctx,
-              w,
-              h,
-              camOffsetX,
-              bgImg,
-              stageThemeRef.current === 'triple-trouble-xeno'
-            );
+            if (isSonicFirstTurn) {
+              ctx.save();
+              ctx.translate(w / 2, 0);
+              ctx.scale(-1, 1);
+              ctx.translate(-w / 2, 0);
+              drawTripleTroubleStage(ctx, w, h, camOffsetX, bgImg, true);
+              ctx.restore();
+            } else {
+              drawTripleTroubleStage(
+                ctx,
+                w,
+                h,
+                camOffsetX,
+                bgImg,
+                stageThemeRef.current === 'triple-trouble-xeno'
+              );
+            }
           }
 
           // B. Apply GF with the speakers to every song except Endless, Endless OG, Triple Trouble, and the YCR 16-bit Pixel section!
@@ -1323,22 +1646,22 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
           }
 
           // C. Draw Opponent & Player Characters positioned around GF's boombox matching the video
-          const oppBaseX = w * 0.295;
-          const plrBaseX = w * 0.705;
-          const oppX =
-            !isPixelStage && lanesFlippedRef.current ? plrBaseX : oppBaseX;
-          const plrX =
-            !isPixelStage && lanesFlippedRef.current ? oppBaseX : plrBaseX;
+          const oppBaseX = isSonicSection ? w * 0.295 : w * 0.355;
+          const plrBaseX = isSonicSection ? w * 0.705 : w * 0.645;
+          const isFlippedStage =
+            isSonicFirstTurn || isSonicSection || (!isPixelStage && lanesFlippedRef.current);
+          const oppX = isFlippedStage ? plrBaseX : oppBaseX;
+          const plrX = isFlippedStage ? oppBaseX : plrBaseX;
           const oppY = isPixelStage
             ? h * 0.695
-            : isHillOrYcr
-              ? h * 0.695
-              : h * 0.69;
+            : isSonicSection
+              ? (isHillOrYcr ? h * 0.695 : h * 0.69)
+              : h * 0.672;
           const plrY = isPixelStage
             ? h * 0.705
-            : isHillOrYcr
-              ? h * 0.705
-              : h * 0.69;
+            : isSonicSection
+              ? (isHillOrYcr ? h * 0.705 : h * 0.69)
+              : h * 0.672;
 
           drawOpponentSprite(
             ctx,
@@ -1348,7 +1671,8 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
             opponentPoseRef.current.pose,
             Math.max(0, curMs),
             song.bpm,
-            opponentPoseRef.current.startedMs
+            opponentPoseRef.current.startedMs,
+            isSonicFirstTurn
           );
 
           drawPlayerSprite(
@@ -1361,7 +1685,7 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
             song.bpm,
             stageThemeRef.current,
             playerPoseRef.current.startedMs,
-            !isPixelStage && lanesFlippedRef.current
+            isSonicFirstTurn || (!isPixelStage && lanesFlippedRef.current)
           );
 
           // Foreground Majin Boppers or Foreground TreesFG.png (zIndex 1000, scroll 1.1)
@@ -1606,12 +1930,7 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
             for (const splash of hitSplashesRef.current) {
               const age = (curMs - splash.timeMs) / 180;
               const sx = getLaneX(true, splash.lane);
-              if (
-                song.id === 'triple-trouble' &&
-                drawBloodNoteSplash(ctx, sx, receptorY, age)
-              ) {
-                continue;
-              }
+              drawBloodNoteSplash(ctx, sx, receptorY, age);
               ctx.save();
               ctx.beginPath();
               ctx.arc(
@@ -1649,12 +1968,64 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
             );
           }
 
-          // F. Mid-song Too Slow & You Can't Run lyrics cutscene (only when curMs > 0)
-          if (curMs > 0 && activeLyricsRef.current) {
+          // F. Mid-song "I AM GOD" Letterboxed Cutscene (applied exclusively to Too Slow & Too Slow Encore matching the video!)
+          const isTooSlowSong =
+            song.id === 'too-slow' || song.id === 'too-slow-encore';
+          const isGodCutscene =
+            isTooSlowSong &&
+            ((song.id === 'too-slow' && curMs >= 129500 && curMs <= 140200) ||
+              (song.id === 'too-slow-encore' && curMs >= 93000 && curMs <= 103800));
+
+          if (isGodCutscene) {
+            ctx.save();
+            const letterboxH = 86;
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, w, letterboxH);
+            ctx.fillRect(0, h - letterboxH, w, letterboxH);
+
+            const cutsceneRelMs =
+              song.id === 'too-slow' ? curMs - 129500 : curMs - 93000;
+
+            let blueText = '';
+            let redText = '';
+
+            if (cutsceneRelMs >= 0 && cutsceneRelMs < 3100) {
+              blueText = 'i am... gonna catch... ';
+              redText = 'yaaaaa!';
+            } else if (cutsceneRelMs >= 3100 && cutsceneRelMs < 6800) {
+              blueText = 'i am... ';
+              redText = 'GOD!';
+            }
+
+            if (blueText || redText) {
+              ctx.font = 'bold 26px "VCR OSD Mono", monospace';
+              ctx.textAlign = 'left';
+              ctx.textBaseline = 'middle';
+              const blueW = ctx.measureText(blueText).width;
+              const redW = ctx.measureText(redText).width;
+              const totalW = blueW + redW;
+              const startX = (w - totalW) / 2;
+              const textY = h - letterboxH / 2;
+
+              ctx.lineWidth = 5;
+              ctx.strokeStyle = '#000000';
+
+              if (blueText) {
+                ctx.strokeText(blueText, startX, textY);
+                ctx.fillStyle = '#60A5FA';
+                ctx.fillText(blueText, startX, textY);
+              }
+              if (redText) {
+                ctx.strokeText(redText, startX + blueW, textY);
+                ctx.fillStyle = '#EF4444';
+                ctx.fillText(redText, startX + blueW, textY);
+              }
+            }
+            ctx.restore();
+          } else if (curMs > 0 && activeLyricsRef.current && !isTooSlowSong) {
             ctx.save();
             ctx.textAlign = 'center';
             const isClimaxLine =
-              activeLyricsRef.current.includes('GOD') ||
               activeLyricsRef.current.includes('DIE') ||
               activeLyricsRef.current.includes('SOUL') ||
               activeLyricsRef.current.includes("CAN'T RUN");
@@ -1728,9 +2099,9 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
           );
 
           // Bottom Stats Below the Bar in the exact same VCR OSD Mono font as the Time Bar:
-          // "Score: 0 | Misses: 0 | Rating: ?" or "Score: 24350 | Misses: 0 | Rating: Sick! (99.32%) - GFC"
+          // "Score: 0 | Combo Breaks: 0 | Rating: ?"
           const ratingText = formatPsychRating(st);
-          const bottomScoreLine = `Score: ${st.score} | Misses: ${st.misses} | Rating: ${ratingText}`;
+          const bottomScoreLine = `Score: ${st.score} | Combo Breaks: ${st.misses} | Rating: ${ratingText}`;
           const statsY = settings.downscroll
             ? hbY + hbHeight + 29
             : hbY + hbHeight + 29;
@@ -1796,9 +2167,14 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
             ctx.restore();
           }
 
-          // Full-screen Jumpscare Picture (Sonic, Tails, Knuckles, or Eggman)
+          // Full-screen Jumpscare Picture or Full VHS Static Screen Transition
           if (curMs > 0 && curMs < spookUntilMsRef.current) {
-            drawSonicJumpscare(ctx, w, h, spookTypeRef.current);
+            if (settings.disableJumpscares) {
+              const staticProgress = (spookUntilMsRef.current - curMs) / 550;
+              drawFullStaticTransition(ctx, w, h, staticProgress);
+            } else {
+              drawSonicJumpscare(ctx, w, h, spookTypeRef.current);
+            }
           }
 
           // Triple Trouble 08:27–08:29 Creepy Sound Test Numbers Ending Screen (from video!)

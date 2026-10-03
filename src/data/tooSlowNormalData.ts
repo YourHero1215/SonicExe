@@ -28,6 +28,8 @@ export const TOO_SLOW_NORMAL_EVENTS: SongEvent[] = [
   { timeMs: 21333, type: 'focus_camera', value: '0' },
   { timeMs: 23111, type: 'focus_camera', value: '1' },
   { timeMs: 24889, type: 'focus_camera', value: '0' },
+  { timeMs: 26667, type: 'too_slow_flash', value: '2' },
+  { timeMs: 26667, type: 'play_anim', value: 'laugh' },
   { timeMs: 26667, type: 'focus_camera', value: '1' },
   { timeMs: 42667, type: 'focus_camera', value: '0' },
   { timeMs: 50000, type: 'too_slow_flash', value: '1' },

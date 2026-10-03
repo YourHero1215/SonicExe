@@ -39,7 +39,7 @@ export const SONGS: SongMetadata[] = [
     opponentHealthColor: '#0E639C',
     playerHealthColor: '#31B0D1',
     description:
-      'Corrupted Green Hill Zone featuring the 28.4s ominous piano intro, Static Notes, 84.6s laugh zoom, 129.5s "I\'m gonna getcha! I am... GOD." lyrics, and 164.4s SonicSpook.',
+      'Corrupted Green Hill Zone featuring the 28.4s ominous piano intro, Static Notes, 84.6s laugh zoom, 129.5s "I am GOD" cutscene, and 164.4s SonicSpook.',
     mechanicsSummary: '0s Synced .OGG Stems · Static Notes · 2:09 Cutscene Lyrics',
   },
   {

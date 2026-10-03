@@ -555,6 +555,84 @@ export const KeybindsModal: React.FC<KeybindsModalProps> = ({
                 </button>
               </div>
 
+              {/* Disable Jumpscares */}
+              <div className="flex items-center justify-between py-2 border-b border-white/5">
+                <div>
+                  <div className="text-sm font-medium text-white">Disable Jumpscares</div>
+                  <div className="text-xs text-slate-400">
+                    Replaces horror jumpscares with full static screen transitions
+                  </div>
+                </div>
+                <button
+                  onClick={() =>
+                    onChangeSettings({
+                      ...settings,
+                      disableJumpscares: !settings.disableJumpscares,
+                    })
+                  }
+                  className={`px-3.5 py-1.5 text-xs font-mono font-bold rounded-lg transition-colors whitespace-nowrap ${
+                    settings.disableJumpscares
+                      ? 'bg-red-600 text-white'
+                      : 'bg-white/10 text-slate-300'
+                  }`}
+                >
+                  {settings.disableJumpscares ? 'JUMPSCARES OFF' : 'OFF (NORMAL)'}
+                </button>
+              </div>
+
+              {/* Note Density Multiplier */}
+              <div className="space-y-1.5 pt-2 border-b border-white/5 pb-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-300 font-medium">
+                    Note Density (Notes per Measure)
+                  </span>
+                  <span className="font-mono font-bold text-red-400 tabular-nums">
+                    {(settings.noteDensityMultiplier || 1.0).toFixed(2)}x
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {[
+                    { label: '0.50x (Easy)', val: 0.5 },
+                    { label: '0.75x (Relaxed)', val: 0.75 },
+                    { label: '1.00x (Original)', val: 1.0 },
+                    { label: '1.25x (Dense)', val: 1.25 },
+                    { label: '1.50x (Hard)', val: 1.5 },
+                    { label: '2.00x (Extreme)', val: 2.0 },
+                  ].map((preset) => (
+                    <button
+                      key={preset.val}
+                      onClick={() =>
+                        onChangeSettings({
+                          ...settings,
+                          noteDensityMultiplier: preset.val,
+                        })
+                      }
+                      className={`px-2 py-1 text-[10px] font-mono font-bold rounded border transition-colors ${
+                        (settings.noteDensityMultiplier || 1.0) === preset.val
+                          ? 'bg-red-600 text-white border-red-500'
+                          : 'bg-white/5 text-slate-300 border-white/10 hover:text-white'
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="range"
+                  min={0.5}
+                  max={2.0}
+                  step={0.05}
+                  value={settings.noteDensityMultiplier || 1.0}
+                  onChange={(e) =>
+                    onChangeSettings({
+                      ...settings,
+                      noteDensityMultiplier: parseFloat(e.target.value),
+                    })
+                  }
+                  className="w-full accent-red-600 cursor-pointer mt-1"
+                />
+              </div>
+
               {/* Scroll Speed Multiplier */}
               <div className="space-y-1.5 pt-1">
                 <div className="flex items-center justify-between text-xs">

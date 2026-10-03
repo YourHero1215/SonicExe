@@ -19,10 +19,12 @@ export const TOO_SLOW_ENCORE_EVENTS: SongEvent[] = [
   // Fake Sonic's sprite changes at 41333ms, followed by only his head twisting backwards toward you at 42467ms (0.20s before dark)!
   { timeMs: 40889, type: 'focus_camera', value: '1' },
   { timeMs: 41333, type: 'play_anim', value: 'gotcha' },
+  { timeMs: 42467, type: 'play_anim', value: 'revealed' },
   // At 42667ms (when BF hits the final note before transformation), flash & black out the screen until 44222ms!
   { timeMs: 42667, type: 'too_slow_flash', value: 'blackout:44222' },
-  // At 43222.22ms: Fake Sonic (sonicexefake) transforms into Sonic.exe (sonic-exe) while screen is black!
+  // At 43222.22ms: Fake Sonic (sonicexefake) transforms into Sonic.exe (sonic-exe) and stage becomes cursed while screen is black!
   { timeMs: 43222, type: 'character_swap', value: 'sonic-exe:bf-encore' },
+  { timeMs: 43222, type: 'stage_swap', value: 'cursed-green-hill' },
   { timeMs: 44111, type: 'zoom_camera', value: '1.2' },
   { timeMs: 44215, type: 'focus_camera', value: '1' },
   // At 44222ms: Sonic initiates his transformation laugh and the screen goes back to normal!

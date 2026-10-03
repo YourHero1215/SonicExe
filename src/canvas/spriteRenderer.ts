@@ -47,16 +47,18 @@ function drawCharSubTexture(
   dh: number,
   srcScale = CHAR_SHEET_SRC_SCALE
 ) {
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(
     sheet,
     sx * srcScale,
     sy * srcScale,
     sw * srcScale,
     sh * srcScale,
-    dx,
-    dy,
-    dw,
-    dh
+    Math.round(dx),
+    Math.round(dy),
+    Math.round(dw),
+    Math.round(dh)
   );
 }
 
@@ -720,16 +722,52 @@ const SONIC_FAKER_ANIMS: Record<
     ],
   },
   revealed: {
-    fps: 12,
+    fps: 24,
     offset: [158, 111],
     frames: [
-      // Immediate dark-blue glowing-red-eye bleeding sprites (Sonic Reveal0020 & 0022) when sprite changes at 41.33s
+      { x: 1771, y: 622, w: 439, h: 606, fx: -18, fy: -13 },
+      { x: 1771, y: 622, w: 439, h: 606, fx: -18, fy: -13 },
+      { x: 2224, y: 622, w: 437, h: 609, fx: -18, fy: -11 },
+      { x: 2224, y: 622, w: 437, h: 609, fx: -18, fy: -11 },
+      { x: 2675, y: 622, w: 428, h: 607, fx: -15, fy: -13 },
+      { x: 2675, y: 622, w: 428, h: 607, fx: -15, fy: -13 },
+      { x: 3117, y: 622, w: 444, h: 623, fx: -7, fy: -7 },
+      { x: 3575, y: 622, w: 444, h: 623, fx: -7, fy: -7 },
+      { x: 0, y: 1259, w: 444, h: 623, fx: -7, fy: -7 },
+      { x: 458, y: 1259, w: 444, h: 623, fx: -7, fy: -7 },
+      { x: 916, y: 1259, w: 444, h: 623, fx: -7, fy: -7 },
+      { x: 1374, y: 1259, w: 444, h: 623, fx: -7, fy: -7 },
+      { x: 1832, y: 1259, w: 444, h: 623, fx: -7, fy: -7 },
+      { x: 2290, y: 1259, w: 444, h: 623, fx: -7, fy: -7 },
+      { x: 2748, y: 1259, w: 444, h: 623, fx: -7, fy: -7 },
+      { x: 3206, y: 1259, w: 444, h: 623, fx: -7, fy: -7 },
+      { x: 0, y: 1896, w: 444, h: 623, fx: -7, fy: -7 },
+      { x: 458, y: 1896, w: 444, h: 623, fx: -7, fy: -7 },
+      { x: 916, y: 1896, w: 444, h: 623, fx: -7, fy: -7 },
+      { x: 1374, y: 1896, w: 458, h: 637, fx: 0, fy: 0 },
       { x: 1846, y: 1896, w: 446, h: 617, fx: -18, fy: -3 },
       { x: 1846, y: 1896, w: 446, h: 617, fx: -18, fy: -3 },
       { x: 2306, y: 1896, w: 444, h: 608, fx: -18, fy: -11 },
       { x: 2306, y: 1896, w: 444, h: 608, fx: -18, fy: -11 },
-      { x: 1846, y: 1896, w: 446, h: 617, fx: -18, fy: -3 },
-      { x: 1846, y: 1896, w: 446, h: 617, fx: -18, fy: -3 },
+      { x: 2306, y: 1896, w: 444, h: 608, fx: -18, fy: -11 },
+      { x: 2306, y: 1896, w: 444, h: 608, fx: -18, fy: -11 },
+      { x: 2306, y: 1896, w: 444, h: 608, fx: -18, fy: -11 },
+      { x: 2306, y: 1896, w: 444, h: 608, fx: -18, fy: -11 },
+      { x: 2306, y: 1896, w: 444, h: 608, fx: -18, fy: -11 },
+      { x: 2306, y: 1896, w: 444, h: 608, fx: -18, fy: -11 },
+      { x: 2306, y: 1896, w: 444, h: 608, fx: -18, fy: -11 },
+      { x: 2306, y: 1896, w: 444, h: 608, fx: -18, fy: -11 },
+      { x: 2306, y: 1896, w: 444, h: 608, fx: -18, fy: -11 },
+      { x: 2306, y: 1896, w: 444, h: 608, fx: -18, fy: -11 },
+      { x: 2306, y: 1896, w: 444, h: 608, fx: -18, fy: -11 },
+      { x: 2306, y: 1896, w: 444, h: 608, fx: -18, fy: -11 },
+      { x: 2306, y: 1896, w: 444, h: 608, fx: -18, fy: -11 },
+      { x: 2306, y: 1896, w: 444, h: 608, fx: -18, fy: -11 },
+      { x: 2306, y: 1896, w: 444, h: 608, fx: -18, fy: -11 },
+      { x: 2306, y: 1896, w: 444, h: 608, fx: -18, fy: -11 },
+      { x: 2306, y: 1896, w: 444, h: 608, fx: -18, fy: -11 },
+      { x: 2306, y: 1896, w: 444, h: 608, fx: -18, fy: -11 },
+      { x: 2306, y: 1896, w: 444, h: 608, fx: -18, fy: -11 },
       { x: 2306, y: 1896, w: 444, h: 608, fx: -18, fy: -11 },
       { x: 2306, y: 1896, w: 444, h: 608, fx: -18, fy: -11 },
     ],
@@ -2863,19 +2901,60 @@ function drawTooSlowSonicExeSprite(
     const scale = 0.405;
 
     if (pose === 'laugh') {
-      const frameIdx =
-        Math.floor(elapsedPoseMs / 42) % SONIC_LAUGH_FRAMES.length;
+      let frameIdx = 0;
+      if (elapsedPoseMs < 250) {
+        frameIdx = Math.min(
+          SONIC_LAUGH_FRAMES.length - 1,
+          Math.floor(elapsedPoseMs / 42)
+        );
+      } else {
+        // Fast rhythmic laughing shake between frames 5 and 6 synced to the laughter audio
+        frameIdx =
+          Math.floor((elapsedPoseMs - 250) / 60) % 2 === 0
+            ? 5
+            : SONIC_LAUGH_FRAMES.length - 1;
+      }
       const f = SONIC_LAUGH_FRAMES[frameIdx];
-      const laughBounce = Math.sin(elapsedPoseMs * 0.055) * 6;
+      // Articulated laugh bounce synced to half-beat rhythm
+      const laughPhase = (timeMs / (beatPeriod / 2)) * Math.PI * 2;
+      const laughBounce = Math.abs(Math.sin(laughPhase)) * 7;
       const drawW = f.w * scale;
       const drawH = f.h * scale;
       const drawX = (-265 - f.frameX) * scale;
-      const drawY = 82 - (751 - 40 + f.frameY) * scale + laughBounce * 0.35;
+      const drawY = 82 - (751 - 40 + f.frameY) * scale + laughBounce * 0.4;
 
       // Pivot at feet (0, 82) for articulated laugh head/torso bounce
       ctx.translate(0, 82);
-      ctx.scale(1 - laughBounce * 0.004, 1 + laughBounce * 0.006);
+      ctx.scale(1 - laughBounce * 0.005, 1 + laughBounce * 0.007);
       ctx.translate(0, -82);
+
+      drawCharSubTexture(
+        ctx,
+        sonicExeSheet,
+        f.x,
+        f.y,
+        f.w,
+        f.h,
+        drawX,
+        drawY,
+        drawW,
+        drawH
+      );
+      ctx.restore();
+      return;
+    }
+
+    if (pose === 'gotcha') {
+      // "I AM GOD!" screaming wide-open mouth pose (SONICmoveDOWN frame 7)
+      const f = SONIC_EXE_TOO_SLOW_ANIMS.down.frames[7];
+      const screamBounce = Math.sin(timeMs * 0.035) * 4;
+      const drawW = f.w * scale;
+      const drawH = f.h * scale;
+      const drawX = (-265 - SONIC_EXE_TOO_SLOW_ANIMS.down.offset[0] - f.fx) * scale;
+      const drawY =
+        82 -
+        (751 - 40 + SONIC_EXE_TOO_SLOW_ANIMS.down.offset[1] + f.fy) * scale +
+        screamBounce * 0.3;
 
       drawCharSubTexture(
         ctx,
@@ -2901,7 +2980,7 @@ function drawTooSlowSonicExeSprite(
           ? 'down'
           : pose === 'up'
             ? 'up'
-            : pose === 'right' || pose === 'gotcha'
+            : pose === 'right'
               ? 'right'
               : 'idle';
 
@@ -3558,7 +3637,8 @@ export function drawOpponentSprite(
   pose: CharacterPose,
   timeMs: number,
   bpm: number,
-  poseStartedMs = 0
+  poseStartedMs = 0,
+  isFlippedOnLeft = false
 ) {
   const beatPeriod = 60000 / bpm;
   const elapsedPoseMs = Math.max(0, timeMs - poseStartedMs);
@@ -3826,7 +3906,7 @@ export function drawOpponentSprite(
     }
   }
 
-  // Use the authentic Sonic_FakerForm.png sprite sheet for Fake Sonic (sonicexefake) in Too Slow Encore!
+  // Use the authentic Sonic_FakerForm.png sprite sheet for Fake Sonic (sonicexefake) in Too Slow and Too Slow Encore!
   if (character === 'sonicexefake') {
     const fakerSheet = getSpriteSheet('/sprites/Sonic_FakerForm.png');
     if (fakerSheet) {
@@ -3838,7 +3918,7 @@ export function drawOpponentSprite(
       ctx.fill();
 
       const animKey: 'idle' | 'left' | 'down' | 'up' | 'right' | 'revealed' =
-        pose === 'gotcha' || pose === 'laugh'
+        pose === 'revealed' || pose === 'gotcha' || pose === 'laugh'
           ? 'revealed'
           : pose === 'left' || pose === 'down' || pose === 'up' || pose === 'right'
             ? pose
@@ -3864,150 +3944,18 @@ export function drawOpponentSprite(
       const drawX = (-82.5 - anim.offset[0] - f.fx) * scale;
       const drawY = 82 - (508 + anim.offset[1] + f.fy) * scale;
 
-      // About 0.20s before the screen goes dark at 42667ms (42467ms..42667ms),
-      // animate ONLY Fake Sonic's head twisting backwards toward you while his body stays frozen!
-      const headTwistWindowMs =
-        animKey === 'revealed'
-          ? timeMs >= 42457 && timeMs <= 42680
-            ? timeMs - 42457
-            : elapsedPoseMs >= 1124
-              ? elapsedPoseMs - 1124
-              : -1
-          : -1;
-
-      if (headTwistWindowMs >= 0) {
-        const t = Math.min(1, Math.max(0, headTwistWindowMs / 185));
-        // Smooth stepped horror snap curve
-        const snapEase =
-          t < 0.5
-            ? 2 * t * t
-            : 1 - Math.pow(-2 * t + 2, 2) * 0.5;
-        const headSrcH = 260;
-        const bodySrcH = f.h - headSrcH;
-        const headDrawH = headSrcH * scale;
-        const bodyDrawH = bodySrcH * scale;
-        const micCapSrcW = 102;
-        const micCapSrcY = 244;
-        const micCapSrcH = headSrcH - micCapSrcY;
-
-        // 1. Draw the stationary lower body (from neck y=260 down to shoes) completely still
-        drawCharSubTexture(
-          ctx,
-          fakerSheet,
-          f.x,
-          f.y + headSrcH,
-          f.w,
-          bodySrcH,
-          drawX,
-          drawY + headDrawH,
-          drawW,
-          bodyDrawH
-        );
-        // Keep the top tip of the microphone in his left hand stationary with the body
-        drawCharSubTexture(
-          ctx,
-          fakerSheet,
-          f.x,
-          f.y + micCapSrcY,
-          micCapSrcW,
-          micCapSrcH,
-          drawX,
-          drawY + micCapSrcY * scale,
-          micCapSrcW * scale,
-          micCapSrcH * scale
-        );
-
-        // 2. Draw ONLY his head (y=0..260) twisting backwards around his neck toward the viewer
-        const neckPivotX = drawX + drawW * 0.455;
-        const neckPivotY = drawY + headDrawH;
-        // Horizontal 3D turn from facing left (+1) through center toward you, twisting backwards (-0.88)
-        const rawScaleX = 1 - snapEase * 1.88;
-        const twistScaleX =
-          Math.abs(rawScaleX) < 0.28
-            ? (rawScaleX >= 0 ? 0.28 : -0.28)
-            : rawScaleX;
-        const twistScaleY = 1 + Math.sin(t * Math.PI) * 0.06;
-        // Eerie owl-like backward head-cock angle as it twists toward you
-        const twistAngle = -snapEase * 0.24 + Math.sin(t * Math.PI * 6) * 0.025;
-
-        ctx.save();
-        ctx.translate(neckPivotX, neckPivotY);
-        ctx.rotate(twistAngle);
-        ctx.scale(twistScaleX, twistScaleY);
-        ctx.translate(-neckPivotX, -neckPivotY);
-
-        // Clip out the stationary microphone cap corner so only the head rotates
-        ctx.beginPath();
-        ctx.rect(drawX - 40, drawY - 40, drawW + 80, micCapSrcY * scale + 40);
-        ctx.rect(
-          drawX + micCapSrcW * scale,
-          drawY + micCapSrcY * scale,
-          drawW - micCapSrcW * scale + 40,
-          micCapSrcH * scale + 4
-        );
-        ctx.clip();
-
-        drawCharSubTexture(
-          ctx,
-          fakerSheet,
-          f.x,
-          f.y,
-          f.w,
-          headSrcH,
-          drawX,
-          drawY,
-          drawW,
-          headDrawH
-        );
-        ctx.restore();
-
-        // 3. As his head twists toward you (t > 0.25), lock both glowing crimson-red eyes directly onto the viewer
-        if (t > 0.25) {
-          const eyeAlpha = Math.min(1, (t - 0.25) / 0.45);
-          const faceCenterX = neckPivotX + snapEase * 6;
-          const faceCenterY = neckPivotY - headDrawH * 0.36;
-          ctx.save();
-          ctx.globalAlpha = eyeAlpha;
-          ctx.translate(faceCenterX, faceCenterY);
-          ctx.rotate(-snapEase * 0.16);
-
-          // Sunken dark eye sockets facing viewer
-          ctx.fillStyle = '#050208';
-          ctx.beginPath();
-          ctx.ellipse(-9, 0, 6.5, 8.5, -0.1, 0, Math.PI * 2);
-          ctx.ellipse(8, 1, 6.5, 8.5, 0.1, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Glowing crimson pupils staring straight at you
-          ctx.shadowColor = '#FF0022';
-          ctx.shadowBlur = 10;
-          ctx.fillStyle = '#FF1A2E';
-          ctx.beginPath();
-          ctx.arc(-9, 0, 3.2, 0, Math.PI * 2);
-          ctx.arc(8, 1, 3.2, 0, Math.PI * 2);
-          ctx.fill();
-
-          ctx.fillStyle = '#FFE4E8';
-          ctx.beginPath();
-          ctx.arc(-9, -0.5, 1.2, 0, Math.PI * 2);
-          ctx.arc(8, 0.5, 1.2, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.restore();
-        }
-      } else {
-        drawCharSubTexture(
-          ctx,
-          fakerSheet,
-          f.x,
-          f.y,
-          f.w,
-          f.h,
-          drawX,
-          drawY,
-          drawW,
-          drawH
-        );
-      }
+      drawCharSubTexture(
+        ctx,
+        fakerSheet,
+        f.x,
+        f.y,
+        f.w,
+        f.h,
+        drawX,
+        drawY,
+        drawW,
+        drawH
+      );
       ctx.restore();
       return;
     }
@@ -4192,7 +4140,8 @@ export function drawOpponentSprite(
       ctx.ellipse(0, 86, 86, 18, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      const isFlipped = character === 'xenophanes-flipped';
+      const isFlipped =
+        character === 'xenophanes-flipped' || x > ctx.canvas.width * 0.45;
       // In sonic-beast-invert.json, singLEFT uses Beast_RIGHT and singRIGHT uses Beast_LEFT
       const animKey: 'idle' | 'left' | 'down' | 'up' | 'right' | 'laugh' =
         pose === 'laugh' || pose === 'gotcha'
@@ -4790,7 +4739,10 @@ export function drawPlayerSprite(
       const scale = 0.72;
       const drawW = f.w * scale;
       const drawH = f.h * scale;
-      if (isRightSide) {
+      const shouldFlip =
+        isRightSide ||
+        (character === 'bf-perspective-left' && x < ctx.canvas.width * 0.55);
+      if (shouldFlip) {
         ctx.scale(-1, 1);
       }
       const drawX = -drawW * 0.5 - anim.offset[0] * scale * 0.45;
@@ -4972,6 +4924,19 @@ export function drawPlayerSprite(
     const drawY = 78 - (411 + anim.offset[1] + f.fy) * scale;
 
     drawCharSubTexture(ctx, bfSheet, f.x, f.y, f.w, f.h, drawX, drawY, drawW, drawH);
+
+    if (_stageTheme === 'endless-majin' || character === 'bf-endless') {
+      ctx.save();
+      ctx.globalCompositeOperation = 'source-atop';
+      const blueGrad = ctx.createLinearGradient(drawX, drawY, drawX, drawY + drawH);
+      blueGrad.addColorStop(0, 'rgba(59, 130, 246, 0.42)');
+      blueGrad.addColorStop(0.5, 'rgba(29, 78, 216, 0.48)');
+      blueGrad.addColorStop(1, 'rgba(30, 58, 138, 0.58)');
+      ctx.fillStyle = blueGrad;
+      ctx.fillRect(drawX, drawY, drawW, drawH);
+      ctx.restore();
+    }
+
     ctx.restore();
     return;
   }
@@ -5016,18 +4981,19 @@ export function drawPlayerSprite(
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
 
-  // Palette switches to bruised purple when pose === 'miss' (matching bf sprites.jpg!)
-  const capFrontColor = isMiss ? '#6D2158' : '#EE1C25';
-  const capBrimColor = isMiss ? '#42164B' : '#9E0B0F';
-  const hairMainColor = isMiss ? '#4361EE' : '#00ADEF';
-  const hairShadeColor = isMiss ? '#2B3A9E' : '#0072BC';
-  const skinColor = isMiss ? '#8E74C2' : '#FAD5B8';
-  const shirtColor = isMiss ? '#7E68C9' : '#FFFFFF';
-  const shirtShadeColor = isMiss ? '#5A46A8' : '#C7D6E8';
-  const prohibColor = isMiss ? '#6D2158' : '#EE1C25';
-  const pantsColor = isMiss ? '#242068' : '#1B3F94';
-  const shoeRedColor = isMiss ? '#5E1D4E' : '#EE1C25';
-  const shoeWhiteColor = isMiss ? '#8E74C2' : '#FFFFFF';
+  // Palette switches to blue for Endless or bruised purple when pose === 'miss' (matching bf sprites.jpg!)
+  const isEndless = _stageTheme === 'endless-majin' || character === 'bf-endless';
+  const capFrontColor = isEndless ? '#1D4ED8' : isMiss ? '#6D2158' : '#EE1C25';
+  const capBrimColor = isEndless ? '#1E3A8A' : isMiss ? '#42164B' : '#9E0B0F';
+  const hairMainColor = isEndless ? '#3B82F6' : isMiss ? '#4361EE' : '#00ADEF';
+  const hairShadeColor = isEndless ? '#1D4ED8' : isMiss ? '#2B3A9E' : '#0072BC';
+  const skinColor = isEndless ? '#BFDBFE' : isMiss ? '#8E74C2' : '#FAD5B8';
+  const shirtColor = isEndless ? '#1E40AF' : isMiss ? '#7E68C9' : '#FFFFFF';
+  const shirtShadeColor = isEndless ? '#1E3A8A' : isMiss ? '#5A46A8' : '#C7D6E8';
+  const prohibColor = isEndless ? '#60A5FA' : isMiss ? '#6D2158' : '#EE1C25';
+  const pantsColor = isEndless ? '#1E293B' : isMiss ? '#242068' : '#1B3F94';
+  const shoeRedColor = isEndless ? '#1E3A8A' : isMiss ? '#5E1D4E' : '#EE1C25';
+  const shoeWhiteColor = isEndless ? '#93C5FD' : isMiss ? '#8E74C2' : '#FFFFFF';
 
   // Ground shadow
   ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
@@ -6416,34 +6382,240 @@ export function drawJudgmentAndComboPopup(
   if (judgmentSpritePath) {
     const ratingImg = getSpriteSheet(judgmentSpritePath);
     if (ratingImg) {
+      // Draw Combo Splash Effect behind "SICK!!" rating indicator matching FNF aesthetic
+      if (text === 'SICK!!' && !isAntiLag) {
+        ctx.save();
+        const splashAge = Math.min(1, age * 1.8);
+        const splashAlpha = Math.max(0, 1 - Math.pow(splashAge, 1.4));
+        const splashRadius = 80 + splashAge * 75;
+
+        ctx.globalAlpha *= splashAlpha;
+
+        // 1. Radial Ambient Glow Aura
+        const auraGrad = ctx.createRadialGradient(
+          centerX,
+          py - 20,
+          10,
+          centerX,
+          py - 20,
+          splashRadius
+        );
+        auraGrad.addColorStop(0, 'rgba(254, 240, 138, 0.7)');
+        auraGrad.addColorStop(0.4, 'rgba(56, 189, 248, 0.5)');
+        auraGrad.addColorStop(1, 'rgba(56, 189, 248, 0)');
+        ctx.fillStyle = auraGrad;
+        ctx.beginPath();
+        ctx.arc(centerX, py - 20, splashRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 2. Multi-Spoke Starburst Impact Rays
+        const numRays = 12;
+        ctx.strokeStyle = splashAge < 0.3 ? '#FFFFFF' : '#38BDF8';
+        ctx.lineWidth = Math.max(1, (1 - splashAge) * 4.5);
+        for (let r = 0; r < numRays; r++) {
+          const rayAngle = (r / numRays) * Math.PI * 2 + splashAge * 0.4;
+          const innerR = 25 + splashAge * 20;
+          const outerR = splashRadius * (r % 2 === 0 ? 1.0 : 0.75);
+          ctx.beginPath();
+          ctx.moveTo(
+            centerX + Math.cos(rayAngle) * innerR,
+            py - 20 + Math.sin(rayAngle) * innerR
+          );
+          ctx.lineTo(
+            centerX + Math.cos(rayAngle) * outerR,
+            py - 20 + Math.sin(rayAngle) * outerR
+          );
+          ctx.stroke();
+        }
+
+        // 3. Energetic Sparkle Diamonds / Stars
+        const numSparks = 8;
+        for (let s = 0; s < numSparks; s++) {
+          const sparkAngle = (s / numSparks) * Math.PI * 2 + 0.2;
+          const sparkDist = (45 + splashAge * 95) * (0.8 + (s % 3) * 0.2);
+          const sx = centerX + Math.cos(sparkAngle) * sparkDist;
+          const sy = py - 20 + Math.sin(sparkAngle) * sparkDist;
+          const sparkSize = (1 - splashAge) * (s % 2 === 0 ? 7.5 : 5);
+
+          ctx.fillStyle = s % 2 === 0 ? '#FEF08A' : '#60A5FA';
+          ctx.beginPath();
+          ctx.moveTo(sx, sy - sparkSize);
+          ctx.lineTo(sx + sparkSize, sy);
+          ctx.lineTo(sx, sy + sparkSize);
+          ctx.lineTo(sx - sparkSize, sy);
+          ctx.closePath();
+          ctx.fill();
+        }
+
+        // 4. Blood Splash Droplets
+        ctx.fillStyle = '#DC2626';
+        const numBlood = 10;
+        for (let b = 0; b < numBlood; b++) {
+          const bloodAng = (b / numBlood) * Math.PI * 2 + 0.15;
+          const bloodDist = (35 + splashAge * 110) * (0.7 + (b % 4) * 0.25);
+          const bx = centerX + Math.cos(bloodAng) * bloodDist;
+          const by = py - 20 + Math.sin(bloodAng) * bloodDist + splashAge * splashAge * 18;
+          const bRadius = (1 - splashAge * 0.8) * (b % 2 === 0 ? 5.5 : 3.5);
+          ctx.beginPath();
+          ctx.arc(bx, by, bRadius, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // 5. Expanding Shockwave Ring
+        ctx.beginPath();
+        ctx.arc(centerX, py - 20, splashRadius * 0.68, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(239, 68, 68, 0.85)';
+        ctx.lineWidth = Math.max(1, (1 - splashAge) * 3.5);
+        ctx.stroke();
+
+        ctx.restore();
+      }
+
       const ratingScale = 0.44 * popBounce;
       const rw = ratingImg.naturalWidth * ratingScale;
       const rh = ratingImg.naturalHeight * ratingScale;
       ctx.drawImage(ratingImg, centerX - rw * 0.5, py - rh * 0.6, rw, rh);
     }
 
-    // Always render at least a 3-digit zero-padded combo counter (e.g. 006, 042) using only the number sprites
+    // Always render at least a 3-digit zero-padded combo counter (e.g. 006, 042) using number sprites
     if (combo >= 1) {
       const comboStr = String(Math.max(0, Math.floor(combo))).padStart(3, '0');
-      const digitScale = 0.36;
-      const digitSpacing = 33;
+
+      // High combo streak tier properties (e.g., every 50 notes)
+      const isMilestone50 = combo >= 50;
+      const isMilestone100 = combo >= 100;
+      const isMilestone150 = combo >= 150;
+      const isMilestone200 = combo >= 200;
+      const isExact50Multiple = combo >= 50 && combo % 50 === 0;
+
+      // 1. Scale multiplier and streak tier colors
+      let streakScaleMultiplier = 1.0;
+      let streakColor = '#FFFFFF';
+      let streakGlowColor = 'rgba(255, 255, 255, 0.5)';
+      let streakBadgeText = '';
+
+      if (isMilestone200) {
+        streakScaleMultiplier = 1.38;
+        streakColor = '#FF2200'; // Inferno Red
+        streakGlowColor = 'rgba(255, 34, 0, 0.95)';
+        streakBadgeText = `${Math.floor(combo / 50) * 50}+ STREAK!`;
+      } else if (isMilestone150) {
+        streakScaleMultiplier = 1.28;
+        streakColor = '#FF00FF'; // Fiery Magenta
+        streakGlowColor = 'rgba(255, 0, 255, 0.9)';
+        streakBadgeText = '150 STREAK!';
+      } else if (isMilestone100) {
+        streakScaleMultiplier = 1.18;
+        streakColor = '#00FFFF'; // Electric Cyan
+        streakGlowColor = 'rgba(0, 255, 255, 0.85)';
+        streakBadgeText = '100 STREAK!';
+      } else if (isMilestone50) {
+        streakScaleMultiplier = 1.08;
+        streakColor = '#FFD700'; // Gold
+        streakGlowColor = 'rgba(255, 215, 0, 0.8)';
+        streakBadgeText = '50 STREAK!';
+      }
+
+      // 2. Milestone pop grow animation: grows in scale upon hitting milestone (50, 100, 150...)
+      let milestoneGrowScale = 1.0;
+      if (isExact50Multiple) {
+        const growPhase = Math.sin(Math.min(1, age * 3.5) * Math.PI);
+        milestoneGrowScale = 1.0 + growPhase * 0.45; // grows up to 1.45x
+      }
+
+      const baseDigitScale = 0.36;
+      const digitScale = baseDigitScale * streakScaleMultiplier * milestoneGrowScale;
+      const digitSpacing = 33 * streakScaleMultiplier * milestoneGrowScale;
       const totalWidth = (comboStr.length - 1) * digitSpacing;
       const startX = centerX - totalWidth * 0.5;
-      const comboY = py + 44;
+      const comboY = py + 44 + (isMilestone50 ? 4 : 0);
 
+      // 3. Milestone shockwave aura & particles
+      if (isExact50Multiple && !isAntiLag) {
+        ctx.save();
+        const shockRadius = (35 + age * 130) * streakScaleMultiplier;
+        const shockAlpha = Math.max(0, 1 - age * 2.5);
+        ctx.beginPath();
+        ctx.arc(centerX, comboY, shockRadius, 0, Math.PI * 2);
+        ctx.strokeStyle = streakColor;
+        ctx.lineWidth = Math.max(1, (1 - age) * 4.5);
+        ctx.globalAlpha = shockAlpha * 0.85;
+        ctx.stroke();
+
+        // Radiating milestone particles
+        for (let p = 0; p < 8; p++) {
+          const pAngle = (p / 8) * Math.PI * 2 + age * 2.5;
+          const pDist = shockRadius * 0.85;
+          const px = centerX + Math.cos(pAngle) * pDist;
+          const py2 = comboY + Math.sin(pAngle) * pDist;
+          ctx.fillStyle = streakColor;
+          ctx.fillRect(px - 3.5, py2 - 3.5, 7, 7);
+        }
+        ctx.restore();
+      }
+
+      // 4. Render Digits with streak color glow and composite tint
       for (let i = 0; i < comboStr.length; i++) {
         const ch = comboStr[i];
         const digitImg = getSpriteSheet(`/sprites/ui/num${ch}.png`);
         if (digitImg) {
           const digitAge = Math.max(0, age - i * 0.025);
           const digitPop = 1 + Math.max(0, 1 - digitAge * 6) * 0.12;
-          const digitBounceY = -Math.sin(Math.min(1, digitAge * 1.15) * Math.PI) * 8;
+          const digitBounceY = -Math.sin(Math.min(1, digitAge * 1.15) * Math.PI) * (isExact50Multiple ? 14 : 8);
           const dw = digitImg.naturalWidth * digitScale * digitPop;
           const dh = digitImg.naturalHeight * digitScale * digitPop;
           const dx = startX + i * digitSpacing - dw * 0.5;
           const dy = comboY + digitBounceY - dh * 0.5;
-          ctx.drawImage(digitImg, dx, dy, dw, dh);
+
+          ctx.save();
+          if (isMilestone50 && !isAntiLag) {
+            ctx.shadowColor = streakGlowColor;
+            ctx.shadowBlur = isExact50Multiple ? 24 : 14;
+
+            // Recolor ONLY the exact number sprite pixels without any box around them
+            const offCanvas = document.createElement('canvas');
+            const dwInt = Math.max(1, Math.ceil(dw));
+            const dhInt = Math.max(1, Math.ceil(dh));
+            offCanvas.width = dwInt;
+            offCanvas.height = dhInt;
+            const offCtx = offCanvas.getContext('2d');
+            if (offCtx) {
+              offCtx.drawImage(digitImg, 0, 0, dwInt, dhInt);
+              offCtx.globalCompositeOperation = 'source-in';
+              offCtx.fillStyle = streakColor;
+              offCtx.fillRect(0, 0, dwInt, dhInt);
+
+              // Draw base number image with glow
+              ctx.drawImage(digitImg, dx, dy, dw, dh);
+              // Overlay tinted number glyph on top
+              ctx.globalAlpha = isExact50Multiple ? 0.92 : 0.75;
+              ctx.drawImage(offCanvas, dx, dy, dw, dh);
+            } else {
+              ctx.drawImage(digitImg, dx, dy, dw, dh);
+            }
+          } else {
+            ctx.drawImage(digitImg, dx, dy, dw, dh);
+          }
+
+          ctx.restore();
         }
+      }
+
+      // 5. Draw high combo streak badge text below digits
+      if (isMilestone50 && !isAntiLag && streakBadgeText) {
+        ctx.save();
+        ctx.font = '900 15px "VCR OSD Mono", "JetBrains Mono", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.lineWidth = 3.6;
+        ctx.strokeStyle = '#000000';
+        ctx.fillStyle = streakColor;
+        ctx.shadowColor = streakGlowColor;
+        ctx.shadowBlur = 10;
+        const badgeY = comboY + 28 * streakScaleMultiplier;
+        ctx.strokeText(streakBadgeText, centerX, badgeY);
+        ctx.fillText(streakBadgeText, centerX, badgeY);
+        ctx.restore();
       }
     }
   }
