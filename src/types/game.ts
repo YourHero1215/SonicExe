@@ -132,8 +132,11 @@ export interface GameplaySettings {
   scrollSpeedMultiplier: number;
   noteDensityMultiplier: number;
   disableJumpscares: boolean;
+  isMobileMode: boolean;
+  deviceChosen: boolean;
   ghostTapping: boolean;
   practiceMode: boolean;
+  easyMode: boolean;
   botplay: boolean;
   crtFilter: boolean;
   antiLagMode: boolean;
@@ -143,6 +146,7 @@ export interface GameplaySettings {
   hitSoundVolume: number;
   musicVolume: number;
   modVersion: ModVersion;
+  mobileLanePositions?: [number, number, number, number];
 }
 
 export type JudgementTier = 'SICK!!' | 'GOOD!' | 'BAD' | 'SHIT' | 'MISS';
@@ -162,6 +166,7 @@ export interface PlayStats {
   health: number; // 0 to 100 (starts at 50)
   usedBotplay?: boolean;
   usedPracticeMode?: boolean;
+  usedEasyMode?: boolean;
 }
 
 export interface HighScoreRecord {

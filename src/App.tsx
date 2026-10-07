@@ -7,6 +7,7 @@ import {
   Pause,
   Play,
   RotateCcw,
+  Smartphone,
   Trash2,
   Trophy,
   Upload,
@@ -33,6 +34,7 @@ import {
   formatKeyCode,
   KeybindsModal,
 } from './components/KeybindsModal';
+import { MobileControlsModal } from './components/MobileControlsModal';
 import { FnfStageCanvas } from './components/FnfStageCanvas';
 import {
   calculateAccuracy,
@@ -63,6 +65,7 @@ export default function App() {
   const [selectedSongId, setSelectedSongId] = useState<SongId>('too-slow');
   const [songFilter, setSongFilter] = useState<SongFilter>('all');
   const [isKeybindsOpen, setIsKeybindsOpen] = useState<boolean>(false);
+  const [isMobileCustomizerOpen, setIsMobileCustomizerOpen] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [runKey, setRunKey] = useState<number>(1);
   const [lastRunStats, setLastRunStats] = useState<PlayStats | null>(null);
@@ -147,13 +150,20 @@ export default function App() {
   });
 
   const [settings, setSettings] = useState<GameplaySettings>(() => {
+    const isTouchDevice =
+      typeof window !== 'undefined' &&
+      (('ontouchstart' in window) || navigator.maxTouchPoints > 0 || window.innerWidth <= 768);
+
     const defaults: GameplaySettings = {
-      downscroll: false,
+      downscroll: isTouchDevice,
       scrollSpeedMultiplier: 1.0,
       noteDensityMultiplier: 1.0,
       disableJumpscares: false,
+      isMobileMode: isTouchDevice,
+      deviceChosen: false,
       ghostTapping: true,
       practiceMode: false,
+      easyMode: false,
       botplay: false,
       crtFilter: false,
       antiLagMode: false,
@@ -401,12 +411,14 @@ export default function App() {
     const acc = totalJudged > 0 ? calculateAccuracy(finalStats) : 100;
     const grade = calculateGrade(acc, finalStats.misses);
 
-    // Do NOT log a record in the menu screen if Botplay or Practice Mode was used at all during the song
+    // Do NOT log a record in the menu screen if Botplay, Practice Mode, or Easy Mode was used at all during the song
     const usedAssist =
       Boolean(finalStats.usedBotplay) ||
       Boolean(finalStats.usedPracticeMode) ||
+      Boolean(finalStats.usedEasyMode) ||
       settings.botplay ||
-      settings.practiceMode;
+      settings.practiceMode ||
+      settings.easyMode;
 
     if (!usedAssist) {
       setHighScores((prev) => {
@@ -542,7 +554,17 @@ export default function App() {
         </nav>
 
         {/* Zone 3: 1-2 primary actions */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          {settings.isMobileMode && (
+            <button
+              onClick={() => setIsMobileCustomizerOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-cyan-200 bg-cyan-950/40 hover:bg-cyan-900/60 border border-cyan-500/40 rounded-lg transition-colors whitespace-nowrap"
+              title="Customize horizontal placement of notes on screen"
+            >
+              <Smartphone className="w-4 h-4 text-cyan-400" />
+              Note Placement ↔
+            </button>
+          )}
           <button
             onClick={() => setIsKeybindsOpen(true)}
             className="flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-200 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors whitespace-nowrap"
@@ -1247,6 +1269,16 @@ export default function App() {
                   )}
                 </button>
 
+                {settings.isMobileMode && (
+                  <button
+                    onClick={() => setIsMobileCustomizerOpen(true)}
+                    className="px-3 py-1.5 rounded-lg bg-cyan-950/60 hover:bg-cyan-900/80 border border-cyan-500/50 text-xs font-mono font-bold text-cyan-300 transition-colors whitespace-nowrap"
+                    title="Change horizontal placement of notes on mobile"
+                  >
+                    📱 Note Placement ↔
+                  </button>
+                )}
+
                 <button
                   onClick={() =>
                     setSettings((s) => ({
@@ -1631,16 +1663,19 @@ export default function App() {
 
               {(lastRunStats.usedBotplay ||
                 lastRunStats.usedPracticeMode ||
+                lastRunStats.usedEasyMode ||
                 settings.botplay ||
-                settings.practiceMode) && (
+                settings.practiceMode ||
+                settings.easyMode) && (
                 <div className="px-4 py-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-xs font-mono text-amber-300">
                   UNRANKED RUN ·{' '}
-                  {lastRunStats.usedBotplay && lastRunStats.usedPracticeMode
-                    ? 'Botplay & Practice Mode were'
-                    : lastRunStats.usedBotplay || settings.botplay
-                      ? 'Botplay was'
-                      : 'Practice Mode was'}{' '}
-                  used during this song. Record not saved to the menu screen.
+                  {lastRunStats.usedEasyMode || settings.easyMode
+                    ? 'Easy Mode was active. Special note penalties were removed — record not saved to the menu screen.'
+                    : lastRunStats.usedBotplay && lastRunStats.usedPracticeMode
+                      ? 'Botplay & Practice Mode were used during this song. Record not saved to the menu screen.'
+                      : lastRunStats.usedBotplay || settings.botplay
+                        ? 'Botplay was used during this song. Record not saved to the menu screen.'
+                        : 'Practice Mode was used during this song. Record not saved to the menu screen.'}
                 </div>
               )}
 
@@ -1747,12 +1782,102 @@ export default function App() {
           );
         })()}
 
+      {/* Device Selection Setup Modal */}
+      {!settings.deviceChosen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
+          <div className="relative w-full max-w-lg bg-[#0F0D18] border-2 border-red-600/80 rounded-2xl shadow-[0_0_60px_rgba(220,38,38,0.45)] overflow-hidden text-center p-6 space-y-5">
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-950/80 border border-red-600/40 text-red-400 text-xs font-mono font-extrabold uppercase tracking-wider">
+                <Smartphone className="w-3.5 h-3.5 text-red-400" /> Controls & Layout Setup
+              </div>
+              <h2 className="text-2xl font-black text-white tracking-wide uppercase font-mono">
+                SELECT YOUR DEVICE TYPE
+              </h2>
+              <p className="text-xs font-mono text-red-400 font-bold bg-red-950/50 p-3 rounded-lg border border-red-900/60 shadow-inner">
+                ⚠️ Answer honestly, because it will affect gameplay drastically.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
+              {/* Option 1: Mobile Touch */}
+              <button
+                onClick={() => {
+                  soundEngine.playMenuTick(true);
+                  setSettings((prev) => ({
+                    ...prev,
+                    isMobileMode: true,
+                    downscroll: true,
+                    deviceChosen: true,
+                  }));
+                }}
+                className="group relative p-4 rounded-xl bg-gradient-to-b from-[#1C1A2E] to-[#121020] border-2 border-slate-700/60 hover:border-red-500 hover:bg-[#25223A] transition-all duration-200 text-left space-y-2 shadow-md hover:shadow-red-900/30"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-2xl">📱</span>
+                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-blue-900/60 text-blue-300 border border-blue-600/40">
+                    TOUCH
+                  </span>
+                </div>
+                <div className="font-bold text-white text-sm group-hover:text-red-400 transition-colors">
+                  Mobile / Tablet
+                </div>
+                <p className="text-[11px] text-slate-300 leading-snug">
+                  Top health bar, top-left OSD timer & score, and large bottom touch-arrow controls matching mobile layout.
+                </p>
+              </button>
+
+              {/* Option 2: Desktop / PC */}
+              <button
+                onClick={() => {
+                  soundEngine.playMenuTick(true);
+                  setSettings((prev) => ({
+                    ...prev,
+                    isMobileMode: false,
+                    deviceChosen: true,
+                  }));
+                }}
+                className="group relative p-4 rounded-xl bg-gradient-to-b from-[#1C1A2E] to-[#121020] border-2 border-slate-700/60 hover:border-red-500 hover:bg-[#25223A] transition-all duration-200 text-left space-y-2 shadow-md hover:shadow-red-900/30"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-2xl">💻</span>
+                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-purple-900/60 text-purple-300 border border-purple-600/40">
+                    KEYBOARD
+                  </span>
+                </div>
+                <div className="font-bold text-white text-sm group-hover:text-red-400 transition-colors">
+                  PC / Laptop
+                </div>
+                <p className="text-[11px] text-slate-300 leading-snug">
+                  Standard Friday Night Funkin' strumlines with customizable keybinds (WASD / DFJK / Arrows).
+                </p>
+              </button>
+            </div>
+
+            <p className="text-[10px] text-slate-400 font-mono">
+              You can change this setting anytime from the Settings menu.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Keybinds & Psych Engine Settings Modal */}
       <KeybindsModal
         isOpen={isKeybindsOpen}
         onClose={() => setIsKeybindsOpen(false)}
         keybinds={keybinds}
         onChangeKeybinds={setKeybinds}
+        settings={settings}
+        onChangeSettings={setSettings}
+        onOpenMobileCustomizer={() => {
+          setIsKeybindsOpen(false);
+          setIsMobileCustomizerOpen(true);
+        }}
+      />
+
+      {/* Mobile Note Horizontal Placement Customizer Modal */}
+      <MobileControlsModal
+        isOpen={isMobileCustomizerOpen}
+        onClose={() => setIsMobileCustomizerOpen(false)}
         settings={settings}
         onChangeSettings={setSettings}
       />

@@ -14,6 +14,7 @@ interface KeybindsModalProps {
   onChangeKeybinds: (next: KeybindConfig) => void;
   settings: GameplaySettings;
   onChangeSettings: (next: GameplaySettings) => void;
+  onOpenMobileCustomizer?: () => void;
 }
 
 export const DEFAULT_KEYBINDS: KeybindConfig = {
@@ -50,6 +51,7 @@ export const KeybindsModal: React.FC<KeybindsModalProps> = ({
   onChangeKeybinds,
   settings,
   onChangeSettings,
+  onOpenMobileCustomizer,
 }) => {
   const [listeningField, setListeningField] = useState<keyof KeybindConfig | null>(null);
 
@@ -377,6 +379,31 @@ export const KeybindsModal: React.FC<KeybindsModalProps> = ({
                 </button>
               </div>
 
+              {/* Easy Mode (Removes phantom & static special notes) */}
+              <div className="flex items-center justify-between py-2 border-b border-white/5">
+                <div>
+                  <div className="text-sm font-medium text-emerald-400">Easy Mode</div>
+                  <div className="text-xs text-slate-400">
+                    For all the people who love to notespam rather than play skillfully (you know who you are)
+                  </div>
+                </div>
+                <button
+                  onClick={() =>
+                    onChangeSettings({
+                      ...settings,
+                      easyMode: !settings.easyMode,
+                    })
+                  }
+                  className={`px-3.5 py-1.5 text-xs font-mono font-bold rounded-lg transition-colors whitespace-nowrap ${
+                    settings.easyMode
+                      ? 'bg-emerald-500 text-black font-extrabold'
+                      : 'bg-white/10 text-slate-300'
+                  }`}
+                >
+                  {settings.easyMode ? 'EASY ON' : 'OFF'}
+                </button>
+              </div>
+
               {/* Botplay / Showcase Mode */}
               <div className="flex items-center justify-between py-2 border-b border-white/5">
                 <div>
@@ -554,6 +581,66 @@ export const KeybindsModal: React.FC<KeybindsModalProps> = ({
                   {settings.crtFilter ? 'CRT ON' : 'OFF'}
                 </button>
               </div>
+
+              {/* Device Mode Toggle */}
+              <div className="flex items-center justify-between py-2 border-b border-white/5">
+                <div>
+                  <div className="text-sm font-medium text-white">Controls & Layout Mode</div>
+                  <div className="text-xs text-slate-400">
+                    Switch between Mobile (Top Health Bar, Touch Arrows) & Desktop Mode
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      const nextMobile = !settings.isMobileMode;
+                      onChangeSettings({
+                        ...settings,
+                        isMobileMode: nextMobile,
+                        downscroll: nextMobile ? true : settings.downscroll,
+                      });
+                    }}
+                    className={`px-3 py-1.5 text-xs font-mono font-bold rounded-lg transition-colors whitespace-nowrap ${
+                      settings.isMobileMode
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-white/10 text-slate-300'
+                    }`}
+                  >
+                    {settings.isMobileMode ? '📱 MOBILE' : '💻 DESKTOP'}
+                  </button>
+                  <button
+                    onClick={() =>
+                      onChangeSettings({
+                        ...settings,
+                        deviceChosen: false,
+                      })
+                    }
+                    className="px-2.5 py-1.5 text-[11px] font-mono font-bold rounded-lg bg-red-950/80 text-red-300 border border-red-800/60 hover:bg-red-900 transition-colors"
+                  >
+                    Re-Select
+                  </button>
+                </div>
+              </div>
+
+              {/* Mobile Note Horizontal Placement Customizer */}
+              {onOpenMobileCustomizer && (
+                <div className="flex items-center justify-between py-2.5 px-3 rounded-xl bg-gradient-to-r from-blue-950/40 to-slate-900/60 border border-blue-800/40">
+                  <div>
+                    <div className="text-sm font-bold text-cyan-300 flex items-center gap-1.5">
+                      <span>📱</span> Mobile Note Placement (Horizontal)
+                    </div>
+                    <div className="text-xs text-slate-300">
+                      Customize Left, Down, Up, Right note positions (Vertical locked to bottom)
+                    </div>
+                  </div>
+                  <button
+                    onClick={onOpenMobileCustomizer}
+                    className="px-3.5 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-mono font-bold shadow transition-all whitespace-nowrap"
+                  >
+                    Customize Placement ↔
+                  </button>
+                </div>
+              )}
 
               {/* Disable Jumpscares */}
               <div className="flex items-center justify-between py-2 border-b border-white/5">

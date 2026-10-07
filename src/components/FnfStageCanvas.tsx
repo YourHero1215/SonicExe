@@ -48,20 +48,30 @@ import {
   drawYcrCrimsonStage,
 } from '../canvas/polishedStageRenderer';
 
-// Utility to scale note density per measure based on settings.noteDensityMultiplier
+// Utility to scale note density per measure and apply Easy Mode (removes special phantom/static notes)
 function scaleChartNoteDensity(
   baseChart: { notes: ChartNote[]; events: SongEvent[] },
-  densityMultiplier: number
+  densityMultiplier: number,
+  easyMode = false
 ): { notes: ChartNote[]; events: SongEvent[] } {
+  let origNotes = baseChart.notes;
+  if (easyMode) {
+    // Easy mode: Remove phantom trap notes and convert static notes to normal
+    origNotes = origNotes
+      .filter((note) => note.special !== 'phantom')
+      .map((note) =>
+        note.special === 'static' ? { ...note, special: 'normal' as const } : note
+      );
+  }
+
   const mult = Math.max(0.5, Math.min(2.5, densityMultiplier || 1.0));
   if (mult === 1.0) {
     return {
-      notes: baseChart.notes.map((n) => ({ ...n })),
+      notes: origNotes.map((n) => ({ ...n })),
       events: baseChart.events,
     };
   }
 
-  const origNotes = baseChart.notes;
   let scaledNotes: ChartNote[] = [];
 
   if (mult < 1.0) {
@@ -113,7 +123,7 @@ function scaleChartNoteDensity(
   return { notes: scaledNotes, events: baseChart.events };
 }
 
-// Utility to render TV VHS static screen transition when jumpscares are disabled
+// Utility to render TV VHS static screen transition when jumpscares are disabled or transitioning to Sonic in Triple Trouble
 function drawFullStaticTransition(
   ctx: CanvasRenderingContext2D,
   w: number,
@@ -122,21 +132,43 @@ function drawFullStaticTransition(
 ) {
   ctx.save();
   const alpha = Math.max(0, Math.min(1, progress));
-  ctx.fillStyle = `rgba(10, 10, 15, ${alpha * 0.96})`;
+  ctx.fillStyle = `rgba(8, 8, 14, ${alpha * 0.98})`;
   ctx.fillRect(0, 0, w, h);
 
-  const numLines = 55;
+  // Horizontal TV static noise scanlines
+  const numLines = 70;
   for (let i = 0; i < numLines; i++) {
     const y = Math.random() * h;
-    const lh = 3 + Math.random() * 8;
-    const val = Math.floor(180 + Math.random() * 75);
-    ctx.fillStyle = `rgba(${val}, ${val}, ${val}, ${alpha * 0.85})`;
+    const lh = 2 + Math.random() * 8;
+    const val = Math.floor(160 + Math.random() * 95);
+    ctx.fillStyle = `rgba(${val}, ${val}, ${val}, ${alpha * (0.65 + Math.random() * 0.3)})`;
     ctx.fillRect(0, y, w, lh);
   }
 
-  // Red static glitch bar
-  ctx.fillStyle = `rgba(220, 38, 38, ${alpha * 0.45})`;
-  ctx.fillRect(0, Math.random() * h, w, 10);
+  // Glitch static blocks
+  const numBlocks = 24;
+  for (let i = 0; i < numBlocks; i++) {
+    const bx = Math.random() * w;
+    const by = Math.random() * h;
+    const bw = 40 + Math.random() * 180;
+    const bh = 3 + Math.random() * 18;
+    const val = Math.floor(180 + Math.random() * 75);
+    ctx.fillStyle = `rgba(${val}, ${val}, ${val}, ${alpha * 0.75})`;
+    ctx.fillRect(bx, by, bw, bh);
+  }
+
+  // Red & Cyan chromatic glitch scanlines
+  ctx.fillStyle = `rgba(239, 68, 68, ${alpha * 0.55})`;
+  ctx.fillRect(0, Math.random() * h, w, 6 + Math.random() * 12);
+
+  ctx.fillStyle = `rgba(6, 182, 212, ${alpha * 0.45})`;
+  ctx.fillRect(0, Math.random() * h, w, 5 + Math.random() * 8);
+
+  // Rolling VHS tracking glitch bar
+  const trackY = ((performance.now() * 0.5) % (h + 100)) - 50;
+  ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.32})`;
+  ctx.fillRect(0, trackY, w, 28);
+
   ctx.restore();
 }
 
@@ -311,9 +343,10 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
     health: 50,
     usedBotplay: settings.botplay,
     usedPracticeMode: settings.practiceMode,
+    usedEasyMode: settings.easyMode,
   });
 
-  // Permanently latch if Botplay or Practice Mode is enabled at any point during the run
+  // Permanently latch if Botplay, Practice Mode, or Easy Mode is enabled at any point during the run
   useEffect(() => {
     if (settings.botplay) {
       statsRef.current.usedBotplay = true;
@@ -321,17 +354,21 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
     if (settings.practiceMode) {
       statsRef.current.usedPracticeMode = true;
     }
-  }, [settings.botplay, settings.practiceMode]);
+    if (settings.easyMode) {
+      statsRef.current.usedEasyMode = true;
+    }
+  }, [settings.botplay, settings.practiceMode, settings.easyMode]);
 
-  // Update note density dynamically in real-time when settings change
+  // Update note density & special notes dynamically in real-time when settings change
   useEffect(() => {
     if (rawBaseChartRef.current) {
       chartRef.current = scaleChartNoteDensity(
         rawBaseChartRef.current,
-        settings.noteDensityMultiplier || 1.0
+        settings.noteDensityMultiplier || 1.0,
+        settings.easyMode
       );
     }
-  }, [settings.noteDensityMultiplier]);
+  }, [settings.noteDensityMultiplier, settings.easyMode]);
 
   const rawBaseChartRef = useRef<{ notes: ChartNote[]; events: SongEvent[] } | null>(null);
 
@@ -344,7 +381,8 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
     rawBaseChartRef.current = baseChart;
     chartRef.current = scaleChartNoteDensity(
       baseChart,
-      settings.noteDensityMultiplier || 1.0
+      settings.noteDensityMultiplier || 1.0,
+      settings.easyMode
     );
     firstActiveNoteIdxRef.current = 0;
     nextEventIdxRef.current = 0;
@@ -399,6 +437,7 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
       health: 50,
       usedBotplay: settings.botplay,
       usedPracticeMode: settings.practiceMode,
+      usedEasyMode: settings.easyMode,
     };
 
     return () => {
@@ -418,8 +457,12 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
   }, [isPaused, song.id]);
 
   const triggerPlayerLane = useCallback(
-    (lane: Direction) => {
+    (lane: Direction, action: 'down' | 'up' = 'down') => {
       if (isPaused) return;
+      if (action === 'up') {
+        pressedLanesRef.current[lane] = false;
+        return;
+      }
       // Sub-frame real-time audio clock lookup to minimize note pressing delay as much as possible
       const liveStemsMs =
         stemsStartedAtZeroRef.current && soundEngine.isSyncedStemsPlaying()
@@ -477,7 +520,7 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
         candidate.hit = true;
 
         // Hitting a blurry note (Phantom Note) is BAD and hurts you!
-        if (candidate.special === 'phantom') {
+        if (candidate.special === 'phantom' && !settings.easyMode) {
           const st = statsRef.current;
           st.misses += 1;
           st.totalNotesEncountered += 1;
@@ -836,6 +879,9 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
       if (settings.practiceMode) {
         statsRef.current.usedPracticeMode = true;
       }
+      if (settings.easyMode) {
+        statsRef.current.usedEasyMode = true;
+      }
 
       // 1. Trigger Backing Rhythm Sub-Beats (Eighth notes)
       if (!isPaused && curMs >= 0) {
@@ -885,6 +931,7 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
                 (isOppFocus ? -85 : 85) * flippedSign;
             } else if (ev.type === 'character_swap') {
               const [opp, plr] = ev.value.split(':');
+              const prevOpp = opponentCharRef.current;
               if (opp) opponentCharRef.current = opp as OpponentCharacterId;
               if (plr) playerCharRef.current = plr as PlayerCharacterId;
               redFlashAlphaRef.current = 0.75;
@@ -892,8 +939,17 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
                 screenShakeIntensityRef.current = 36;
                 let banner = '⚡ TRIPLE TROUBLE PHASE SHIFT! ⚡';
                 const oppName = (opp || '').toLowerCase();
-                if (oppName.includes('xeno')) {
+                const isTransitionToSonic =
+                  (oppName.includes('xeno') || oppName.includes('sonic')) &&
+                  prevOpp !== 'xenophanes' &&
+                  prevOpp !== 'xenophanes-flipped';
+
+                if (isTransitionToSonic) {
                   banner = '⚡ XENOPHANES PHASE! ⚡';
+                  soundEngine.playStaticBurst();
+                  spookTypeRef.current = 'sonic';
+                  spookUntilMsRef.current = curMs + 700;
+                  staticAlphaRef.current = 1.0;
                 } else if (oppName.includes('knuckles')) {
                   banner = '🔥 KNUCKLES.EXE PHASE! 🔥';
                 } else if (oppName.includes('eggman')) {
@@ -1075,14 +1131,14 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
               }
             } else if (ev.type === 'sonicspook') {
               spookTypeRef.current = ev.value || 'sonic';
-              spookUntilMsRef.current = curMs + 550;
+              spookUntilMsRef.current = curMs + 650;
+              soundEngine.playStaticBurst();
               if (settings.disableJumpscares) {
                 staticAlphaRef.current = 1.0;
                 redFlashAlphaRef.current = 0.2;
               } else {
                 redFlashAlphaRef.current = 0.95;
                 staticAlphaRef.current = 0.65;
-                soundEngine.playStaticBurst();
               }
               if (song.id === 'triple-trouble') {
                 screenShakeIntensityRef.current = 38;
@@ -1415,9 +1471,10 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
               st.misses += 1;
               st.combo = 0;
               st.score -= 100;
-              const hpPenalty = note.special === 'static' ? 9.8 : 5.25;
+              const isStaticNote = note.special === 'static' && !settings.easyMode;
+              const hpPenalty = isStaticNote ? 9.8 : 5.25;
               st.health = Math.max(0, st.health - hpPenalty);
-              if (note.special === 'static') {
+              if (isStaticNote) {
                 staticAlphaRef.current = 0.75;
                 soundEngine.playStaticBurst();
               } else {
@@ -1735,11 +1792,16 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
             }
           }
 
-          // D0. Top Time Bar with Remaining Time (matching the video: 400x19 outer black box at y=28, 392x11 inner white fill at y=32 + 32px VCR OSD Mono M:SS text)
-          const timeBarW = 392;
-          const timeBarH = 11;
-          const timeBarX = (w - timeBarW) / 2;
-          const timeBarY = settings.downscroll ? h - 36 : 32;
+          // D0. Time Bar with Remaining Time (placed on the right side in Mobile Mode matching screenshot)
+          const isMobile = settings.isMobileMode;
+          const timeBarW = isMobile ? 180 : 392;
+          const timeBarH = isMobile ? 10 : 11;
+          const timeBarX = isMobile ? w - timeBarW - 22 : (w - timeBarW) / 2;
+          const timeBarY = isMobile
+            ? 18
+            : settings.downscroll
+              ? h - 36
+              : 32;
           const songProgress = Math.min(
             1,
             Math.max(0, curMs / totalDurationMs)
@@ -1765,37 +1827,47 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
               timeBarH
             );
           }
-          // Centered M:SS countdown text over the bar in 32px VCR OSD Mono
+          // M:SS countdown text over or below the bar in VCR OSD Mono
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.font = '32px "VCR OSD Mono", "JetBrains Mono", monospace';
+          ctx.font = isMobile
+            ? 'bold 22px "VCR OSD Mono", "JetBrains Mono", monospace'
+            : '32px "VCR OSD Mono", "JetBrains Mono", monospace';
           ctx.lineJoin = 'round';
           ctx.miterLimit = 2;
+          const textX = isMobile ? timeBarX + timeBarW * 0.5 : w * 0.5;
+          const textY = isMobile ? timeBarY + timeBarH + 18 : timeBarY + timeBarH * 0.5 + 1;
+
           if (!isAntiLag) {
             ctx.strokeStyle = '#000000';
             ctx.lineWidth = 4.5;
             ctx.strokeText(
               `${remMin}:${remSecPad}`,
-              w * 0.5,
-              timeBarY + timeBarH * 0.5 + 1
+              textX,
+              textY
             );
           }
           ctx.fillStyle = '#FFFFFF';
           ctx.fillText(
             `${remMin}:${remSecPad}`,
-            w * 0.5,
-            timeBarY + timeBarH * 0.5 + 1
+            textX,
+            textY
           );
           ctx.restore();
 
-          // D. Draw 8-Lane FNF Strumline & Scrolling Notes (matching the video: 109px arrows, 112px lane spacing, y=50 top edge -> 104 center, x=146.5 & 786.5 centers)
+          // D. Draw FNF Strumline & Scrolling Notes (Single set of bottom arrows for Mobile)
           ctx.globalAlpha = 1;
           ctx.globalCompositeOperation = 'source-over';
           ctx.shadowBlur = 0;
           ctx.shadowColor = 'transparent';
 
-          const receptorY = settings.downscroll ? h - 96 : 104;
-          const noteSize = 109;
+          const isDownscroll = settings.downscroll || settings.isMobileMode;
+          const receptorY = isDownscroll
+            ? settings.isMobileMode
+              ? h - 70
+              : h - 96
+            : 104;
+          const noteSize = settings.isMobileMode ? 104 : 109;
           const laneGap = 112;
 
           const leftGroupStartX = lanesFlippedRef.current ? 786.5 : 146.5;
@@ -1805,6 +1877,11 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
             isPlayer: boolean,
             lane: Direction
           ) => {
+            if (settings.isMobileMode) {
+              const mobilePositions = settings.mobileLanePositions || [0.14, 0.38, 0.62, 0.86];
+              const normalizedX = mobilePositions[lane] ?? [0.14, 0.38, 0.62, 0.86][lane];
+              return w * normalizedX;
+            }
             if (!isPlayer) {
               return leftGroupStartX + lane * laneGap;
             }
@@ -1815,46 +1892,76 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
           const isPixelSkin =
             pixelNoteskinActiveRef.current || isPixelStage;
 
-          for (let l = 0; l < 4; l++) {
-            const dir = l as Direction;
-            const oppConfirm = curMs <= opponentConfirmUntilMsRef.current[dir];
-            const plrConfirm =
-              curMs <= playerConfirmUntilMsRef.current[dir] ||
-              (settings.botplay &&
-                playerPoseRef.current.pose === DIRECTION_FROM_POSE[dir] &&
-                curMs <= playerPoseRef.current.untilMs);
-            const plrPressed = pressedLanesRef.current[dir] || plrConfirm;
+          if (settings.isMobileMode) {
+            // Mobile mode: Draw the single set of authentic FNF computer arrows at the bottom
+            for (let l = 0; l < 4; l++) {
+              const dir = l as Direction;
+              const plrConfirm =
+                curMs <= playerConfirmUntilMsRef.current[dir] ||
+                (settings.botplay &&
+                  playerPoseRef.current.pose === DIRECTION_FROM_POSE[dir] &&
+                  curMs <= playerPoseRef.current.untilMs);
+              const plrPressed = pressedLanesRef.current[dir] || plrConfirm;
 
-            drawFnfArrow(
-              ctx,
-              getLaneX(false, dir),
-              receptorY,
-              noteSize,
-              dir,
-              LANE_COLORS[dir],
-              true,
-              oppConfirm,
-              'normal',
-              spinRad,
-              isMajinSkin,
-              oppConfirm,
-              isPixelSkin
-            );
-            drawFnfArrow(
-              ctx,
-              getLaneX(true, dir),
-              receptorY,
-              noteSize,
-              dir,
-              LANE_COLORS[dir],
-              true,
-              plrPressed,
-              'normal',
-              spinRad,
-              isMajinSkin,
-              plrConfirm,
-              isPixelSkin
-            );
+              drawFnfArrow(
+                ctx,
+                getLaneX(true, dir),
+                receptorY,
+                noteSize,
+                dir,
+                LANE_COLORS[dir],
+                true,
+                plrPressed,
+                'normal',
+                spinRad,
+                isMajinSkin,
+                plrConfirm,
+                isPixelSkin
+              );
+            }
+          } else {
+            // Desktop mode: Draw both opponent and player receptor arrows
+            for (let l = 0; l < 4; l++) {
+              const dir = l as Direction;
+              const oppConfirm = curMs <= opponentConfirmUntilMsRef.current[dir];
+              const plrConfirm =
+                curMs <= playerConfirmUntilMsRef.current[dir] ||
+                (settings.botplay &&
+                  playerPoseRef.current.pose === DIRECTION_FROM_POSE[dir] &&
+                  curMs <= playerPoseRef.current.untilMs);
+              const plrPressed = pressedLanesRef.current[dir] || plrConfirm;
+
+              drawFnfArrow(
+                ctx,
+                getLaneX(false, dir),
+                receptorY,
+                noteSize,
+                dir,
+                LANE_COLORS[dir],
+                true,
+                oppConfirm,
+                'normal',
+                spinRad,
+                isMajinSkin,
+                oppConfirm,
+                isPixelSkin
+              );
+              drawFnfArrow(
+                ctx,
+                getLaneX(true, dir),
+                receptorY,
+                noteSize,
+                dir,
+                LANE_COLORS[dir],
+                true,
+                plrPressed,
+                'normal',
+                spinRad,
+                isMajinSkin,
+                plrConfirm,
+                isPixelSkin
+              );
+            }
           }
 
           const scrollMult =
@@ -1863,10 +1970,15 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
               ? settings.scrollSpeedMultiplier
               : 1;
           const pxPerMs = 0.46 * song.scrollSpeed * scrollMult;
-          const scrollDir = settings.downscroll ? -1 : 1;
+          const scrollDir = isDownscroll ? -1 : 1;
 
           for (let ni = firstActiveNoteIdxRef.current; ni < notes.length; ni++) {
             const note = notes[ni];
+            // On mobile, only show player notes falling into the single set of bottom arrows
+            if (settings.isMobileMode && !note.isPlayer) {
+              continue;
+            }
+
             const timeDiff = note.timeMs - curMs;
             if (timeDiff > 1900) break;
             if (timeDiff + note.sustainMs < -260) continue;
@@ -1893,7 +2005,7 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
                 tailStartY,
                 tailEndY,
                 note.lane,
-                settings.downscroll,
+                isDownscroll,
                 isMajinSkin,
                 isAntiLag,
                 isPixelSkin
@@ -2042,16 +2154,56 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
             ctx.restore();
           }
 
-          // G. Health Bar, Beat-Bopping Character Icons, & Stats Below the Bar in VCR OSD Mono (matching the video!)
+          // G. Health Bar, Beat-Bopping Character Icons, & Stats Below the Bar
           const hbWidth = 594;
           const hbHeight = 11;
           const hbX = (w - hbWidth) / 2;
-          const hbY = settings.downscroll ? 56 : h - 72;
+          const hbY = settings.isMobileMode
+            ? 18
+            : settings.downscroll
+              ? 56
+              : h - 72;
           const st = statsRef.current;
           const hp = Math.max(0, Math.min(100, displayedHealthRef.current));
           const opponentRatio = (100 - hp) / 100;
           const oppBarColor = getCharacterHealthColor(opponentCharRef.current);
           const plrBarColor = getCharacterHealthColor(playerCharRef.current);
+
+          // Top-Left Retro Arcade OSD (Mobile Mode) matching Screenshot_20261002_173320.jpg
+          if (settings.isMobileMode) {
+            ctx.save();
+            ctx.font = '900 24px "VCR OSD Mono", "JetBrains Mono", monospace';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            ctx.lineWidth = 4.5;
+            ctx.strokeStyle = '#000000';
+
+            const elapsedSec = Math.max(0, Math.floor(curMs / 1000));
+            const mm = String(Math.floor(elapsedSec / 60)).padStart(2, '0');
+            const ss = String(elapsedSec % 60).padStart(2, '0');
+            const timeStr = `${mm}:${ss}`;
+
+            const osdLines = [
+              { label: 'MISSES ', val: String(st.misses) },
+              { label: 'TIME   ', val: timeStr },
+              { label: 'SCORE  ', val: String(st.score) },
+            ];
+
+            let lineY = 16;
+            for (const item of osdLines) {
+              const labelW = ctx.measureText(item.label).width;
+              // Stroke
+              ctx.strokeText(item.label, 20, lineY);
+              ctx.strokeText(item.val, 20 + labelW, lineY);
+              // Fill
+              ctx.fillStyle = '#EAB308'; // Yellow label matching screenshot
+              ctx.fillText(item.label, 20, lineY);
+              ctx.fillStyle = '#FFFFFF'; // White value matching screenshot
+              ctx.fillText(item.val, 20 + labelW, lineY);
+              lineY += 28;
+            }
+            ctx.restore();
+          }
 
           ctx.save();
           // Outer 4px solid black health bar border (602x19)
@@ -2265,7 +2417,70 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
               <span className="text-emerald-400 font-bold">ANTI-LAG ON</span>
             </>
           )}
+          {settings.easyMode && (
+            <>
+              <span>·</span>
+              <span className="text-emerald-400 font-bold">EASY MODE</span>
+            </>
+          )}
         </div>
+
+        {/* Mobile Mode Bottom Touch Hit-Zones matching the 4 Custom Computer Arrow Positions */}
+        {settings.isMobileMode && (
+          <div className="absolute inset-x-0 bottom-0 h-28 pointer-events-none z-40 select-none touch-none">
+            {[0 as const, 1 as const, 2 as const, 3 as const].map((lane) => {
+              const isPressed = pressedLanesRef.current[lane];
+              const mobilePositions = settings.mobileLanePositions || [0.14, 0.38, 0.62, 0.86];
+              const normalizedX = (mobilePositions[lane] ?? [0.14, 0.38, 0.62, 0.86][lane]) * 100;
+
+              return (
+                <div
+                  key={lane}
+                  style={{
+                    position: 'absolute',
+                    left: `${normalizedX}%`,
+                    bottom: '0px',
+                    transform: 'translateX(-50%)',
+                    width: '22%',
+                    height: '100%',
+                  }}
+                  onTouchStart={(e) => {
+                    e.preventDefault();
+                    pressedLanesRef.current[lane] = true;
+                    triggerPlayerLane(lane, 'down');
+                  }}
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
+                    pressedLanesRef.current[lane] = false;
+                    triggerPlayerLane(lane, 'up');
+                  }}
+                  onTouchCancel={(e) => {
+                    e.preventDefault();
+                    pressedLanesRef.current[lane] = false;
+                    triggerPlayerLane(lane, 'up');
+                  }}
+                  onMouseDown={() => {
+                    pressedLanesRef.current[lane] = true;
+                    triggerPlayerLane(lane, 'down');
+                  }}
+                  onMouseUp={() => {
+                    pressedLanesRef.current[lane] = false;
+                    triggerPlayerLane(lane, 'up');
+                  }}
+                  onMouseLeave={() => {
+                    pressedLanesRef.current[lane] = false;
+                    triggerPlayerLane(lane, 'up');
+                  }}
+                  className={`pointer-events-auto transition-all duration-75 active:scale-95 cursor-pointer select-none bg-transparent ${
+                    isPressed
+                      ? 'opacity-100'
+                      : 'opacity-100'
+                  }`}
+                />
+              );
+            })}
+          </div>
+        )}
 
         {/* Top-Right Fullscreen Toggle Button */}
         <button
