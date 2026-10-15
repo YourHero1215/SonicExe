@@ -667,6 +667,33 @@ export const KeybindsModal: React.FC<KeybindsModalProps> = ({
                 </button>
               </div>
 
+              {/* Remove Blood & Gore */}
+              <div className="flex items-center justify-between py-2 border-b border-white/5">
+                <div>
+                  <div className="text-sm font-medium text-white flex items-center gap-1.5">
+                    <span>🩸</span> Remove Blood & Gore
+                  </div>
+                  <div className="text-xs text-slate-400">
+                    Removes blood pools, impaled corpses in Too Slow, eye blood tears, Tails jumpscare gore, and glove stains
+                  </div>
+                </div>
+                <button
+                  onClick={() =>
+                    onChangeSettings({
+                      ...settings,
+                      removeBloodGore: !settings.removeBloodGore,
+                    })
+                  }
+                  className={`px-3.5 py-1.5 text-xs font-mono font-bold rounded-lg transition-colors whitespace-nowrap ${
+                    settings.removeBloodGore
+                      ? 'bg-emerald-600 text-white shadow'
+                      : 'bg-white/10 text-slate-300'
+                  }`}
+                >
+                  {settings.removeBloodGore ? 'BLOOD REMOVED' : 'NORMAL (GORE ON)'}
+                </button>
+              </div>
+
               {/* Note Density Multiplier */}
               <div className="space-y-1.5 pt-2 border-b border-white/5 pb-2">
                 <div className="flex items-center justify-between text-xs">

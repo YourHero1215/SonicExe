@@ -132,6 +132,7 @@ export interface GameplaySettings {
   scrollSpeedMultiplier: number;
   noteDensityMultiplier: number;
   disableJumpscares: boolean;
+  removeBloodGore: boolean;
   isMobileMode: boolean;
   deviceChosen: boolean;
   ghostTapping: boolean;

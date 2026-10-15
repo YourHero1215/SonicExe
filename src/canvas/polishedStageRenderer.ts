@@ -5,6 +5,7 @@ interface CachedPolishedStage {
   skyEncore: HTMLCanvasElement;
   midTreesCombined: HTMLCanvasElement;
   mainGrassAndProps: HTMLCanvasElement;
+  mainGrassAndPropsClean: HTMLCanvasElement;
 }
 
 interface CachedYcrStage {
@@ -386,58 +387,61 @@ function ensurePolishedStageBuilt(): CachedPolishedStage {
     drawStripedConiferTree(ctx, 1735, 625, 82, 350, -45);
   }
 
-  // 8–9. Combined Grass + Corpses + Tails Pike Layer
+function drawGrassBaseFloor(ctx: CanvasRenderingContext2D) {
+  // Base Grass.png floor (y = 580..1080) with rich multi-stop depth gradient
+  ctx.beginPath();
+  ctx.moveTo(0, 1080);
+  ctx.lineTo(0, 595);
+  for (let x = 0; x <= 1920; x += 40) {
+    const bladePeak = 575 + Math.sin(x * 0.05) * 14;
+    ctx.quadraticCurveTo(x + 14, bladePeak - 20, x + 20, bladePeak);
+    ctx.quadraticCurveTo(x + 30, bladePeak + 10, x + 40, 595);
+  }
+  ctx.lineTo(1920, 1080);
+  ctx.closePath();
+  const grassGrad = ctx.createLinearGradient(0, 575, 0, 1080);
+  grassGrad.addColorStop(0, '#A88426');
+  grassGrad.addColorStop(0.35, '#96731E');
+  grassGrad.addColorStop(1, '#5E440C');
+  ctx.fillStyle = grassGrad;
+  ctx.fill();
+  ctx.lineWidth = 5;
+  ctx.strokeStyle = '#3F4606';
+  ctx.stroke();
+
+  // Mid golden-ochre sunburst clearing patch (matching Grass.png)
+  const midClearGrad = ctx.createRadialGradient(960, 830, 80, 960, 830, 760);
+  midClearGrad.addColorStop(0, '#DEC04A');
+  midClearGrad.addColorStop(0.65, '#BA962C');
+  midClearGrad.addColorStop(1, 'rgba(150, 115, 30, 0)');
+  ctx.fillStyle = midClearGrad;
+  ctx.beginPath();
+  ctx.ellipse(960, 840, 760, 255, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Detailed grass blade clusters across the ground for crisp texture
+  ctx.strokeStyle = '#785A12';
+  ctx.lineWidth = 3;
+  for (let gx = 120; gx < 1800; gx += 135) {
+    for (let gy = 650; gy < 1020; gy += 110) {
+      const ox = ((gx * 17 + gy * 31) % 60) - 30;
+      const oy = ((gx * 23 + gy * 13) % 36) - 18;
+      ctx.beginPath();
+      ctx.moveTo(gx + ox - 12, gy + oy);
+      ctx.lineTo(gx + ox - 6, gy + oy - 14);
+      ctx.lineTo(gx + ox, gy + oy);
+      ctx.lineTo(gx + ox + 7, gy + oy - 16);
+      ctx.lineTo(gx + ox + 13, gy + oy);
+      ctx.stroke();
+    }
+  }
+}
+
+  // 8. Combined Grass + Corpses + Tails Pike Layer (Gore version)
   const mainGrassAndProps = createOffscreen();
   {
     const ctx = getStageCtx(mainGrassAndProps);
-
-    // Base Grass.png floor (y = 580..1080) with rich multi-stop depth gradient
-    ctx.beginPath();
-    ctx.moveTo(0, 1080);
-    ctx.lineTo(0, 595);
-    for (let x = 0; x <= 1920; x += 40) {
-      const bladePeak = 575 + Math.sin(x * 0.05) * 14;
-      ctx.quadraticCurveTo(x + 14, bladePeak - 20, x + 20, bladePeak);
-      ctx.quadraticCurveTo(x + 30, bladePeak + 10, x + 40, 595);
-    }
-    ctx.lineTo(1920, 1080);
-    ctx.closePath();
-    const grassGrad = ctx.createLinearGradient(0, 575, 0, 1080);
-    grassGrad.addColorStop(0, '#A88426');
-    grassGrad.addColorStop(0.35, '#96731E');
-    grassGrad.addColorStop(1, '#5E440C');
-    ctx.fillStyle = grassGrad;
-    ctx.fill();
-    ctx.lineWidth = 5;
-    ctx.strokeStyle = '#3F4606';
-    ctx.stroke();
-
-    // Mid golden-ochre sunburst clearing patch (matching Grass.png)
-    const midClearGrad = ctx.createRadialGradient(960, 830, 80, 960, 830, 760);
-    midClearGrad.addColorStop(0, '#DEC04A');
-    midClearGrad.addColorStop(0.65, '#BA962C');
-    midClearGrad.addColorStop(1, 'rgba(150, 115, 30, 0)');
-    ctx.fillStyle = midClearGrad;
-    ctx.beginPath();
-    ctx.ellipse(960, 840, 760, 255, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Detailed grass blade clusters across the ground for crisp texture
-    ctx.strokeStyle = '#785A12';
-    ctx.lineWidth = 3;
-    for (let gx = 120; gx < 1800; gx += 135) {
-      for (let gy = 650; gy < 1020; gy += 110) {
-        const ox = ((gx * 17 + gy * 31) % 60) - 30;
-        const oy = ((gx * 23 + gy * 13) % 36) - 18;
-        ctx.beginPath();
-        ctx.moveTo(gx + ox - 12, gy + oy);
-        ctx.lineTo(gx + ox - 6, gy + oy - 14);
-        ctx.lineTo(gx + ox, gy + oy);
-        ctx.lineTo(gx + ox + 7, gy + oy - 16);
-        ctx.lineTo(gx + ox + 13, gy + oy);
-        ctx.stroke();
-      }
-    }
+    drawGrassBaseFloor(ctx);
 
     // DeadEgg.png (left grass at x=470, y=700) — High-detail shattered Eggman corpse
     ctx.save();
@@ -741,11 +745,23 @@ function ensurePolishedStageBuilt(): CachedPolishedStage {
     ctx.restore();
   }
 
+  // 9. Clean Grass Layer (No Blood/Gore/Corpses)
+  const mainGrassAndPropsClean = createOffscreen();
+  {
+    const ctx = getStageCtx(mainGrassAndPropsClean);
+    drawGrassBaseFloor(ctx);
+    // Draw clean background conifer trees in place of the pike and corpses
+    drawStripedConiferTree(ctx, 368, 640, 110, 390, 0);
+    drawStripedConiferTree(ctx, 470, 660, 85, 330, 25);
+    drawStripedConiferTree(ctx, 1535, 670, 90, 340, -25);
+  }
+
   cachedStage = {
     skyNormal,
     skyEncore,
     midTreesCombined,
     mainGrassAndProps,
+    mainGrassAndPropsClean,
   };
   return cachedStage;
 }
@@ -1286,7 +1302,8 @@ export function drawPolishedStageBackLayers(
   w: number,
   h: number,
   songId: SongId,
-  cameraOffsetX = 0
+  cameraOffsetX = 0,
+  removeBloodGore = false
 ) {
   if (typeof document === 'undefined') return;
 
@@ -1312,13 +1329,18 @@ export function drawPolishedStageBackLayers(
       w + bleedX * 2,
       h + bleedY * 2
     );
-    ctx.drawImage(
-      hillGroundImg,
-      -bleedX,
-      -bleedY,
-      w + bleedX * 2,
-      h + bleedY * 2
-    );
+    if (removeBloodGore) {
+      const st = ensurePolishedStageBuilt();
+      ctx.drawImage(st.mainGrassAndPropsClean, 0, 0, w, h);
+    } else {
+      ctx.drawImage(
+        hillGroundImg,
+        -bleedX,
+        -bleedY,
+        w + bleedX * 2,
+        h + bleedY * 2
+      );
+    }
     return;
   }
 
@@ -1332,7 +1354,10 @@ export function drawPolishedStageBackLayers(
   ctx.drawImage(st.midTreesCombined, cameraOffsetX * 0.18, 0, w, h);
 
   // 3. Grass + Corpses + Tails Pike (scroll 1.0 locked to characters)
-  ctx.drawImage(st.mainGrassAndProps, 0, 0, w, h);
+  const grassLayer = removeBloodGore
+    ? st.mainGrassAndPropsClean
+    : st.mainGrassAndProps;
+  ctx.drawImage(grassLayer, 0, 0, w, h);
 }
 
 /**

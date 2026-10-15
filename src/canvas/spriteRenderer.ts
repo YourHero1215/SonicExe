@@ -2883,6 +2883,50 @@ function drawExeRedMicrophone(
   ctx.restore();
 }
 
+function cleanSonicExeBloodGore(
+  ctx: CanvasRenderingContext2D,
+  drawX: number,
+  drawY: number,
+  drawW: number,
+  drawH: number
+) {
+  ctx.save();
+  // 1. Cover blood tears streaming down Sonic's peach muzzle / cheeks
+  ctx.fillStyle = '#F1AD85';
+  ctx.beginPath();
+  ctx.ellipse(drawX + drawW * 0.49, drawY + drawH * 0.40, drawW * 0.05, drawH * 0.055, 0.1, 0, Math.PI * 2);
+  ctx.ellipse(drawX + drawW * 0.58, drawY + drawH * 0.40, drawW * 0.05, drawH * 0.055, -0.1, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 2. Clean dark eye sockets with crisp pinpoint glowing red pupils
+  ctx.fillStyle = '#050507';
+  ctx.beginPath();
+  ctx.ellipse(drawX + drawW * 0.49, drawY + drawH * 0.33, drawW * 0.055, drawH * 0.05, 0, 0, Math.PI * 2);
+  ctx.ellipse(drawX + drawW * 0.58, drawY + drawH * 0.33, drawW * 0.055, drawH * 0.05, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#EF4444';
+  ctx.beginPath();
+  ctx.arc(drawX + drawW * 0.50, drawY + drawH * 0.33, Math.max(2, drawW * 0.015), 0, Math.PI * 2);
+  ctx.arc(drawX + drawW * 0.59, drawY + drawH * 0.33, Math.max(2, drawW * 0.015), 0, Math.PI * 2);
+  ctx.fill();
+
+  // 3. Clean white gloves: cover red blood stains on Sonic's white gloves
+  ctx.fillStyle = '#FFFFFF';
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.arc(drawX + drawW * 0.38, drawY + drawH * 0.54, drawW * 0.055, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(drawX + drawW * 0.65, drawY + drawH * 0.52, drawW * 0.055, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+}
+
 // Draw authentic Too Slow Sonic.exe 5-pose sprites matching idle.jpg, left.jpg, down.jpg, up.jpg, right.jpg
 // + SONIClaugh (image.png) whenever Sonic.exe laughs in Too Slow or Too Slow Encore!
 function drawTooSlowSonicExeSprite(
@@ -2890,7 +2934,8 @@ function drawTooSlowSonicExeSprite(
   pose: CharacterPose,
   timeMs: number,
   bpm: number,
-  poseStartedMs = 0
+  poseStartedMs = 0,
+  removeBloodGore = false
 ) {
   const beatPeriod = 60000 / bpm;
   const elapsedPoseMs = Math.max(0, timeMs - poseStartedMs);
@@ -2940,6 +2985,9 @@ function drawTooSlowSonicExeSprite(
         drawW,
         drawH
       );
+      if (removeBloodGore) {
+        cleanSonicExeBloodGore(ctx, drawX, drawY, drawW, drawH);
+      }
       ctx.restore();
       return;
     }
@@ -2968,6 +3016,9 @@ function drawTooSlowSonicExeSprite(
         drawW,
         drawH
       );
+      if (removeBloodGore) {
+        cleanSonicExeBloodGore(ctx, drawX, drawY, drawW, drawH);
+      }
       ctx.restore();
       return;
     }
@@ -3018,6 +3069,9 @@ function drawTooSlowSonicExeSprite(
       drawW,
       drawH
     );
+    if (removeBloodGore) {
+      cleanSonicExeBloodGore(ctx, drawX, drawY, drawW, drawH);
+    }
 
     ctx.restore();
     return;
@@ -3353,8 +3407,10 @@ function drawTooSlowSonicExeSprite(
     ctx.fill();
 
     // Blood dripping under eye socket
-    ctx.fillStyle = '#B91C1C';
-    ctx.fillRect(-4, 2, 22, 6);
+    if (!removeBloodGore) {
+      ctx.fillStyle = '#B91C1C';
+      ctx.fillRect(-4, 2, 22, 6);
+    }
 
     // Glowing red pupil
     ctx.fillStyle = '#EF4444';
@@ -3456,8 +3512,10 @@ function drawTooSlowSonicExeSprite(
     ctx.fill();
 
     // Blood rim under eye socket
-    ctx.fillStyle = '#991B1B';
-    ctx.fillRect(-6, 5, 24, 6);
+    if (!removeBloodGore) {
+      ctx.fillStyle = '#991B1B';
+      ctx.fillRect(-6, 5, 24, 6);
+    }
 
     // Glowing red pinpoint pupil
     ctx.fillStyle = '#EF4444';
@@ -3475,7 +3533,7 @@ function drawTooSlowSonicExeSprite(
     ctx.stroke();
 
     // Sinister bloody smile on left side of muzzle
-    ctx.fillStyle = '#7F1D1D';
+    ctx.fillStyle = removeBloodGore ? '#110E18' : '#7F1D1D';
     ctx.beginPath();
     ctx.moveTo(-14, 8);
     ctx.quadraticCurveTo(-2, 22, 14, 14);
@@ -3638,7 +3696,8 @@ export function drawOpponentSprite(
   timeMs: number,
   bpm: number,
   poseStartedMs = 0,
-  isFlippedOnLeft = false
+  isFlippedOnLeft = false,
+  removeBloodGore = false
 ) {
   const beatPeriod = 60000 / bpm;
   const elapsedPoseMs = Math.max(0, timeMs - poseStartedMs);
@@ -3690,6 +3749,23 @@ export function drawOpponentSprite(
         82 - 412 * scale - (anim.offset[1] + f.fy) * scale * 0.45 + headBounce * 0.4;
 
       drawCharSubTexture(ctx, tailsSheet, f.x, f.y, f.w, f.h, drawX, drawY, drawW, drawH);
+      if (removeBloodGore) {
+        // Clean blood tears running from Tails's eye sockets
+        ctx.save();
+        ctx.fillStyle = '#09080D';
+        const eyeY = drawY + drawH * 0.38;
+        ctx.beginPath();
+        ctx.ellipse(drawX + drawW * 0.44, eyeY, drawW * 0.08, drawH * 0.07, 0, 0, Math.PI * 2);
+        ctx.ellipse(drawX + drawW * 0.58, eyeY, drawW * 0.08, drawH * 0.07, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#FACC15';
+        ctx.beginPath();
+        ctx.arc(drawX + drawW * 0.44, eyeY, drawW * 0.022, 0, Math.PI * 2);
+        ctx.arc(drawX + drawW * 0.58, eyeY, drawW * 0.022, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
       ctx.restore();
       return;
     }
@@ -4207,7 +4283,7 @@ export function drawOpponentSprite(
     ctx.ellipse(0, 82, 68, 16, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    drawTooSlowSonicExeSprite(ctx, pose, timeMs, bpm, poseStartedMs);
+    drawTooSlowSonicExeSprite(ctx, pose, timeMs, bpm, poseStartedMs, removeBloodGore);
     ctx.restore();
     return;
   }
@@ -4520,9 +4596,11 @@ export function drawOpponentSprite(
     ctx.fill();
 
     // Bleeding dark crimson streaks under eyes
-    ctx.fillStyle = '#991B1B';
-    ctx.fillRect(-6, 8, 6, 16);
-    ctx.fillRect(14, 8, 6, 16);
+    if (!removeBloodGore) {
+      ctx.fillStyle = '#991B1B';
+      ctx.fillRect(-6, 8, 6, 16);
+      ctx.fillRect(14, 8, 6, 16);
+    }
 
     // Glowing Red Pupils
     const pupilRadius = pose === 'gotcha' ? 6.2 : 4.2;
@@ -4605,7 +4683,7 @@ export function drawOpponentSprite(
   ctx.fill();
   ctx.stroke();
 
-  if (!isMajin && !isFakeSonic) {
+  if (!isMajin && !isFakeSonic && !removeBloodGore) {
     ctx.fillStyle = '#DC2626';
     ctx.beginPath();
     ctx.arc(handX + 8, handY - 4, 5, 0, Math.PI * 2);
@@ -4622,10 +4700,15 @@ export function drawPolishedHillProps(
   w: number,
   h: number,
   layer: 'back' | 'front',
-  cameraOffsetX = 0
+  cameraOffsetX = 0,
+  removeBloodGore = false
 ) {
   ctx.save();
   if (layer === 'back') {
+    if (removeBloodGore) {
+      ctx.restore();
+      return;
+    }
     const groundY = h * 0.68;
     // "Warning" (Tails Pike at left-center of stage, zIndex 26)
     const pikeX = w * 0.14 - cameraOffsetX * 0.85;
@@ -6261,11 +6344,97 @@ export function drawSonicJumpscare(
   ctx: CanvasRenderingContext2D,
   w: number,
   h: number,
-  spookType = 'sonic'
+  spookType = 'sonic',
+  removeBloodGore = false
 ) {
   ctx.save();
   ctx.fillStyle = '#000000';
   ctx.fillRect(0, 0, w, h);
+
+  if (removeBloodGore) {
+    // Clean, gore-free and bloodless atmospheric jumpscare / spook
+    const centerX = w * 0.5;
+    const centerY = h * 0.48;
+
+    if (spookType === 'tails') {
+      // Clean Tails spook: dark fox silhouette with glowing yellow fox eyes (NO gore or blood)
+      ctx.fillStyle = '#0D0B14';
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, 190, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Fox ears
+      ctx.fillStyle = '#D97706';
+      ctx.beginPath();
+      ctx.moveTo(centerX - 120, centerY - 100);
+      ctx.lineTo(centerX - 230, centerY - 280);
+      ctx.lineTo(centerX - 20, centerY - 160);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(centerX + 120, centerY - 100);
+      ctx.lineTo(centerX + 230, centerY - 280);
+      ctx.lineTo(centerX + 20, centerY - 160);
+      ctx.closePath();
+      ctx.fill();
+
+      // Muzzle
+      ctx.fillStyle = '#FCE7F3';
+      ctx.beginPath();
+      ctx.ellipse(centerX, centerY + 55, 95, 55, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#09080D';
+      ctx.beginPath();
+      ctx.ellipse(centerX, centerY + 30, 22, 14, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Clean hollow dark eye sockets with glowing yellow pupils (NO blood tears!)
+      ctx.fillStyle = '#09080D';
+      ctx.beginPath();
+      ctx.ellipse(centerX - 68, centerY - 15, 38, 48, -0.1, 0, Math.PI * 2);
+      ctx.ellipse(centerX + 68, centerY - 15, 38, 48, 0.1, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#FACC15';
+      ctx.shadowColor = '#FACC15';
+      ctx.shadowBlur = 35;
+      ctx.beginPath();
+      ctx.arc(centerX - 62, centerY - 12, 12, 0, Math.PI * 2);
+      ctx.arc(centerX + 62, centerY - 12, 12, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (spookType === 'knuckles') {
+      ctx.fillStyle = '#BE185D';
+      ctx.shadowColor = '#BE185D';
+      ctx.shadowBlur = 40;
+      ctx.beginPath();
+      ctx.arc(centerX - 70, centerY - 20, 24, 0, Math.PI * 2);
+      ctx.arc(centerX + 70, centerY - 20, 24, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (spookType === 'eggman') {
+      ctx.fillStyle = '#38BDF8';
+      ctx.shadowColor = '#38BDF8';
+      ctx.shadowBlur = 40;
+      ctx.beginPath();
+      ctx.arc(centerX - 65, centerY - 15, 28, 0, Math.PI * 2);
+      ctx.arc(centerX + 65, centerY - 15, 28, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      // Sonic: Dark silhouette with glowing red eyes
+      ctx.fillStyle = '#EF4444';
+      ctx.shadowColor = '#EF4444';
+      ctx.shadowBlur = 40;
+      ctx.beginPath();
+      ctx.arc(centerX - 65, centerY - 20, 24, 0, Math.PI * 2);
+      ctx.arc(centerX + 65, centerY - 20, 24, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
+    return;
+  }
+
   const spookPath =
     spookType === 'tails'
       ? '/sprites/P3_Tails.png'
@@ -6358,7 +6527,8 @@ export function drawJudgmentAndComboPopup(
   centerX: number,
   baseY: number,
   age: number,
-  isAntiLag = false
+  isAntiLag = false,
+  removeBloodGore = false
 ) {
   ctx.save();
   if (!isAntiLag) {
@@ -6447,24 +6617,28 @@ export function drawJudgmentAndComboPopup(
           ctx.fill();
         }
 
-        // 4. Blood Splash Droplets
-        ctx.fillStyle = '#DC2626';
-        const numBlood = 10;
-        for (let b = 0; b < numBlood; b++) {
-          const bloodAng = (b / numBlood) * Math.PI * 2 + 0.15;
-          const bloodDist = (35 + splashAge * 110) * (0.7 + (b % 4) * 0.25);
-          const bx = centerX + Math.cos(bloodAng) * bloodDist;
-          const by = py - 20 + Math.sin(bloodAng) * bloodDist + splashAge * splashAge * 18;
-          const bRadius = (1 - splashAge * 0.8) * (b % 2 === 0 ? 5.5 : 3.5);
-          ctx.beginPath();
-          ctx.arc(bx, by, bRadius, 0, Math.PI * 2);
-          ctx.fill();
+        // 4. Blood Splash Droplets (only when gore enabled)
+        if (!removeBloodGore) {
+          ctx.fillStyle = '#DC2626';
+          const numBlood = 10;
+          for (let b = 0; b < numBlood; b++) {
+            const bloodAng = (b / numBlood) * Math.PI * 2 + 0.15;
+            const bloodDist = (35 + splashAge * 110) * (0.7 + (b % 4) * 0.25);
+            const bx = centerX + Math.cos(bloodAng) * bloodDist;
+            const by = py - 20 + Math.sin(bloodAng) * bloodDist + splashAge * splashAge * 18;
+            const bRadius = (1 - splashAge * 0.8) * (b % 2 === 0 ? 5.5 : 3.5);
+            ctx.beginPath();
+            ctx.arc(bx, by, bRadius, 0, Math.PI * 2);
+            ctx.fill();
+          }
         }
 
         // 5. Expanding Shockwave Ring
         ctx.beginPath();
         ctx.arc(centerX, py - 20, splashRadius * 0.68, 0, Math.PI * 2);
-        ctx.strokeStyle = 'rgba(239, 68, 68, 0.85)';
+        ctx.strokeStyle = removeBloodGore
+          ? 'rgba(56, 189, 248, 0.85)'
+          : 'rgba(239, 68, 68, 0.85)';
         ctx.lineWidth = Math.max(1, (1 - splashAge) * 3.5);
         ctx.stroke();
 
@@ -6569,8 +6743,6 @@ export function drawJudgmentAndComboPopup(
 
           ctx.save();
           if (isMilestone50 && !isAntiLag) {
-            ctx.shadowColor = streakGlowColor;
-            ctx.shadowBlur = isExact50Multiple ? 24 : 14;
 
             // Recolor ONLY the exact number sprite pixels without any box around them
             const offCanvas = document.createElement('canvas');

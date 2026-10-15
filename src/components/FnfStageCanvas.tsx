@@ -1645,7 +1645,14 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
           if (stageThemeRef.current === 'green-hill-clean') {
             drawGreenHillCleanStage(ctx, w, h, camOffsetX);
           } else if (isHillStage) {
-            drawPolishedStageBackLayers(ctx, w, h, song.id, camOffsetX);
+            drawPolishedStageBackLayers(
+              ctx,
+              w,
+              h,
+              song.id,
+              camOffsetX,
+              settings.removeBloodGore
+            );
           } else if (isPixelStage) {
             drawPixelGenesisStage(ctx, w, h, curMs);
           } else if (stageThemeRef.current === 'ycr-crimson') {
@@ -1729,7 +1736,8 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
             Math.max(0, curMs),
             song.bpm,
             opponentPoseRef.current.startedMs,
-            isSonicFirstTurn
+            isSonicFirstTurn,
+            settings.removeBloodGore
           );
 
           drawPlayerSprite(
@@ -2076,7 +2084,8 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
               w * 0.5,
               h * 0.44,
               age,
-              isAntiLag
+              isAntiLag,
+              settings.removeBloodGore
             );
           }
 
@@ -2325,7 +2334,13 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
               const staticProgress = (spookUntilMsRef.current - curMs) / 550;
               drawFullStaticTransition(ctx, w, h, staticProgress);
             } else {
-              drawSonicJumpscare(ctx, w, h, spookTypeRef.current);
+              drawSonicJumpscare(
+                ctx,
+                w,
+                h,
+                spookTypeRef.current,
+                settings.removeBloodGore
+              );
             }
           }
 
