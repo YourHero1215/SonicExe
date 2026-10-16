@@ -159,7 +159,6 @@ export default function App() {
       scrollSpeedMultiplier: 1.0,
       noteDensityMultiplier: 1.0,
       disableJumpscares: false,
-      removeBloodGore: false,
       isMobileMode: isTouchDevice,
       deviceChosen: false,
       ghostTapping: true,
@@ -311,8 +310,7 @@ export default function App() {
               logicalW,
               logicalH,
               selectedSong.id,
-              gentlePan,
-              settings.removeBloodGore
+              gentlePan
             );
           } else if (selectedSong.stageTheme === 'ycr-crimson') {
             drawYcrCrimsonStage(
@@ -1339,22 +1337,7 @@ export default function App() {
                   {settings.antiLagMode ? 'Anti-Lag: ON' : 'Anti-Lag: OFF'}
                 </button>
 
-                <button
-                  onClick={() =>
-                    setSettings((s) => ({
-                      ...s,
-                      removeBloodGore: !s.removeBloodGore,
-                    }))
-                  }
-                  className={`px-3 py-1.5 rounded-lg border text-xs font-mono font-bold transition-colors whitespace-nowrap ${
-                    settings.removeBloodGore
-                      ? 'bg-emerald-500 text-black border-emerald-400'
-                      : 'bg-white/5 text-slate-300 border-white/10'
-                  }`}
-                  title="Toggle Remove Blood & Gore option (removes blood, Too Slow corpses, eye tears, jumpscare gore, bloody gloves)"
-                >
-                  {settings.removeBloodGore ? '🩸 Blood: OFF' : '🩸 Blood: ON'}
-                </button>
+
 
                 <div
                   className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-mono text-slate-200"

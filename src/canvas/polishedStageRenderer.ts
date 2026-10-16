@@ -745,15 +745,10 @@ function drawGrassBaseFloor(ctx: CanvasRenderingContext2D) {
     ctx.restore();
   }
 
-  // 9. Clean Grass Layer (No Blood/Gore/Corpses)
   const mainGrassAndPropsClean = createOffscreen();
   {
     const ctx = getStageCtx(mainGrassAndPropsClean);
     drawGrassBaseFloor(ctx);
-    // Draw clean background conifer trees in place of the pike and corpses
-    drawStripedConiferTree(ctx, 368, 640, 110, 390, 0);
-    drawStripedConiferTree(ctx, 470, 660, 85, 330, 25);
-    drawStripedConiferTree(ctx, 1535, 670, 90, 340, -25);
   }
 
   cachedStage = {
@@ -1302,8 +1297,7 @@ export function drawPolishedStageBackLayers(
   w: number,
   h: number,
   songId: SongId,
-  cameraOffsetX = 0,
-  removeBloodGore = false
+  cameraOffsetX = 0
 ) {
   if (typeof document === 'undefined') return;
 
@@ -1329,18 +1323,13 @@ export function drawPolishedStageBackLayers(
       w + bleedX * 2,
       h + bleedY * 2
     );
-    if (removeBloodGore) {
-      const st = ensurePolishedStageBuilt();
-      ctx.drawImage(st.mainGrassAndPropsClean, 0, 0, w, h);
-    } else {
-      ctx.drawImage(
-        hillGroundImg,
-        -bleedX,
-        -bleedY,
-        w + bleedX * 2,
-        h + bleedY * 2
-      );
-    }
+    ctx.drawImage(
+      hillGroundImg,
+      -bleedX,
+      -bleedY,
+      w + bleedX * 2,
+      h + bleedY * 2
+    );
     return;
   }
 
@@ -1354,10 +1343,7 @@ export function drawPolishedStageBackLayers(
   ctx.drawImage(st.midTreesCombined, cameraOffsetX * 0.18, 0, w, h);
 
   // 3. Grass + Corpses + Tails Pike (scroll 1.0 locked to characters)
-  const grassLayer = removeBloodGore
-    ? st.mainGrassAndPropsClean
-    : st.mainGrassAndProps;
-  ctx.drawImage(grassLayer, 0, 0, w, h);
+  ctx.drawImage(st.mainGrassAndProps, 0, 0, w, h);
 }
 
 /**

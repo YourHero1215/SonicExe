@@ -822,6 +822,12 @@ class FnfSoundEngine {
     return this.stemsPlaying;
   }
 
+  public seekSyncedStems(timeMs: number) {
+    if (!this.stemsPlaying) return;
+    this.stopSyncedStems(false);
+    this.startSyncedStems(timeMs / 1000, this.activeSongId);
+  }
+
   public getSyncedStemsTimeMs(): number | null {
     if (!this.stemsPlaying || !this.ctx) return null;
     const outLatency =

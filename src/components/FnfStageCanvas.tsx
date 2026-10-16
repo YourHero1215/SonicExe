@@ -706,6 +706,19 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
         return;
       }
 
+      if (e.code === 'Tab') {
+        e.preventDefault();
+        const nowMs = songTimeMsRef.current;
+        const nextNote = chartRef.current.notes.find(n => n.timeMs > nowMs + 1000);
+        if (nextNote) {
+          soundEngine.seekSyncedStems(nextNote.timeMs);
+          songTimeMsRef.current = nextNote.timeMs;
+          firstActiveNoteIdxRef.current = chartRef.current.notes.findIndex(n => n.timeMs >= nextNote.timeMs);
+          // Also reset player/opponent pose or health might be needed? Maybe not.
+        }
+        return;
+      }
+      
       if (isPaused) return;
 
       if (e.code === keybinds.ring) {
@@ -1650,8 +1663,7 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
               w,
               h,
               song.id,
-              camOffsetX,
-              settings.removeBloodGore
+              camOffsetX
             );
           } else if (isPixelStage) {
             drawPixelGenesisStage(ctx, w, h, curMs);
@@ -1737,7 +1749,6 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
             song.bpm,
             opponentPoseRef.current.startedMs,
             isSonicFirstTurn,
-            settings.removeBloodGore
           );
 
           drawPlayerSprite(
@@ -2085,7 +2096,6 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
               h * 0.44,
               age,
               isAntiLag,
-              settings.removeBloodGore
             );
           }
 
@@ -2339,7 +2349,6 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
                 w,
                 h,
                 spookTypeRef.current,
-                settings.removeBloodGore
               );
             }
           }
@@ -2515,6 +2524,22 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
             </>
           )}
         </button>
+
+        {/* Skip Instrumental Intro Button */}
+        {songTimeMsRef.current < (chartRef.current.notes[0]?.timeMs || 0) && (
+          <button
+            onClick={() => {
+              const firstNoteTime = chartRef.current.notes[0]?.timeMs || 0;
+              songTimeMsRef.current = firstNoteTime;
+              stemsStartedAtZeroRef.current = true;
+              soundEngine.seekSyncedStems(firstNoteTime);
+            }}
+            className="absolute top-3 left-3 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-900/80 hover:bg-emerald-800/90 border border-emerald-500/50 text-xs font-mono font-semibold text-emerald-100 transition-all"
+            title="Skip instrumental intro"
+          >
+            Skip Intro →
+          </button>
+        )}
       </div>
     </div>
   );

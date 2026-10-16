@@ -6782,8 +6782,6 @@ export function drawJudgmentAndComboPopup(
         ctx.lineWidth = 3.6;
         ctx.strokeStyle = '#000000';
         ctx.fillStyle = streakColor;
-        ctx.shadowColor = streakGlowColor;
-        ctx.shadowBlur = 10;
         const badgeY = comboY + 28 * streakScaleMultiplier;
         ctx.strokeText(streakBadgeText, centerX, badgeY);
         ctx.fillText(streakBadgeText, centerX, badgeY);
