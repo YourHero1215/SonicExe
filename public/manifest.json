@@ -1,0 +1,15 @@
+{
+  "name": "sonicexe",
+  "short_name": "sonicexe",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#09080D",
+  "theme_color": "#09080D",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
