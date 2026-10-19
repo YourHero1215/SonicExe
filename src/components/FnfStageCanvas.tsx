@@ -26,6 +26,7 @@ import {
   drawHealthIcon,
   drawJudgmentAndComboPopup,
   drawSonicJumpscare,
+  drawStaticNoteMissEffect,
   drawMajinForestBoppers,
   drawOpponentSprite,
   drawPixelGenesisStage,
@@ -327,6 +328,7 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
   const blackoutUntilMsRef = useRef<number>(-Infinity);
   const activeLyricsRef = useRef<string>('');
   const spookUntilMsRef = useRef<number>(-Infinity);
+  const staticNoteMissUntilMsRef = useRef<number>(-Infinity);
 
   const statsRef = useRef<PlayStats>({
     score: 0,
@@ -376,6 +378,7 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
   useEffect(() => {
     soundEngine.stopSyncedStems(true);
     soundEngine.preloadSongStems(song.id).catch(() => {});
+    soundEngine.preloadCustomSfx();
     preloadSpritesForSong(song.id);
     const baseChart = generateSongChartAndEvents(song.id);
     rawBaseChartRef.current = baseChart;
@@ -419,6 +422,7 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
     activeLyricsRef.current = '';
     spookUntilMsRef.current = -Infinity;
     spookTypeRef.current = 'sonic';
+    staticNoteMissUntilMsRef.current = -Infinity;
     ringPressedRef.current = false;
     ringConfirmUntilMsRef.current = -Infinity;
     dramaticBannerRef.current = null;
@@ -959,9 +963,9 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
 
                 if (isTransitionToSonic) {
                   banner = '⚡ XENOPHANES PHASE! ⚡';
-                  soundEngine.playStaticBurst();
+                  soundEngine.playSonicJumpscareSound();
                   spookTypeRef.current = 'sonic';
-                  spookUntilMsRef.current = curMs + 700;
+                  spookUntilMsRef.current = curMs + 150;
                   staticAlphaRef.current = 1.0;
                 } else if (oppName.includes('knuckles')) {
                   banner = '🔥 KNUCKLES.EXE PHASE! 🔥';
@@ -1144,8 +1148,14 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
               }
             } else if (ev.type === 'sonicspook') {
               spookTypeRef.current = ev.value || 'sonic';
-              spookUntilMsRef.current = curMs + 650;
-              soundEngine.playStaticBurst();
+              const isSonicScare = spookTypeRef.current === 'sonic' || spookTypeRef.current === 'spook';
+              // Sonic's PNG jumpscare flashes on screen for exactly 150 ms (.15 seconds)
+              spookUntilMsRef.current = curMs + (isSonicScare ? 150 : 650);
+              if (isSonicScare) {
+                soundEngine.playSonicJumpscareSound();
+              } else {
+                soundEngine.playStaticBurst();
+              }
               if (settings.disableJumpscares) {
                 staticAlphaRef.current = 1.0;
                 redFlashAlphaRef.current = 0.2;
@@ -1488,8 +1498,10 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
               const hpPenalty = isStaticNote ? 9.8 : 5.25;
               st.health = Math.max(0, st.health - hpPenalty);
               if (isStaticNote) {
-                staticAlphaRef.current = 0.75;
-                soundEngine.playStaticBurst();
+                // Red static screen effect lasts exactly 300 ms (.3 seconds)
+                staticNoteMissUntilMsRef.current = curMs + 300;
+                staticAlphaRef.current = 0;
+                soundEngine.playStaticNoteMissSound();
               } else {
                 soundEngine.playMissSound();
               }
@@ -2338,10 +2350,10 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
             ctx.restore();
           }
 
-          // Full-screen Jumpscare Picture or Full VHS Static Screen Transition
+          // Full-screen Jumpscare Picture (150 ms flash duration) or Full VHS Static Screen Transition
           if (curMs > 0 && curMs < spookUntilMsRef.current) {
             if (settings.disableJumpscares) {
-              const staticProgress = (spookUntilMsRef.current - curMs) / 550;
+              const staticProgress = (spookUntilMsRef.current - curMs) / 150;
               drawFullStaticTransition(ctx, w, h, staticProgress);
             } else {
               drawSonicJumpscare(
@@ -2351,6 +2363,16 @@ export const FnfStageCanvas: React.FC<FnfStageCanvasProps> = ({
                 spookTypeRef.current,
               );
             }
+          }
+
+          // Static Note Miss Fullscreen Red Static Effect (lasts exactly 300 ms / .3s matching unnamed.jpg)
+          if (curMs > 0 && curMs < staticNoteMissUntilMsRef.current) {
+            drawStaticNoteMissEffect(
+              ctx,
+              w,
+              h,
+              staticNoteMissUntilMsRef.current - curMs
+            );
           }
 
           // Triple Trouble 08:27–08:29 Creepy Sound Test Numbers Ending Screen (from video!)

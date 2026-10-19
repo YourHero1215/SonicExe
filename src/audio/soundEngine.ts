@@ -206,6 +206,28 @@ class FnfSoundEngine {
   private stemsPlaying = false;
   private playerVoiceMuted = false;
   private cachedStaticBuffer: AudioBuffer | null = null;
+  private staticMissAudioPool: HTMLAudioElement[] = [];
+  private sonicJumpscareAudioPool: HTMLAudioElement[] = [];
+
+  constructor() {
+    if (typeof window !== 'undefined') {
+      try {
+        for (let i = 0; i < 4; i++) {
+          const a1 = new Audio('/audio/static_note_miss.ogg');
+          a1.preload = 'auto';
+          this.staticMissAudioPool.push(a1);
+          const a2 = new Audio('/audio/sonic_jumpscare.ogg');
+          a2.preload = 'auto';
+          this.sonicJumpscareAudioPool.push(a2);
+        }
+      } catch {
+        // Ignore in non-browser context
+      }
+      setTimeout(() => {
+        this.preloadCustomSfx().catch(() => {});
+      }, 30);
+    }
+  }
 
   private ensureContext(): AudioContext | null {
     if (typeof window === 'undefined') return null;
@@ -1251,6 +1273,123 @@ class FnfSoundEngine {
     noise.connect(gain);
     gain.connect(this.masterGain);
     noise.start(now);
+  }
+
+  private cachedStaticNoteMissBuffer: AudioBuffer | null = null;
+  private cachedSonicJumpscareBuffer: AudioBuffer | null = null;
+  private isPreloadingSfx = false;
+
+  public async preloadCustomSfx() {
+    if (this.isPreloadingSfx) return;
+    this.isPreloadingSfx = true;
+    const ctx = this.ensureContext();
+    if (!ctx) return;
+    try {
+      if (!this.cachedStaticNoteMissBuffer) {
+        const r1 = await fetch('/audio/static_note_miss.ogg');
+        if (r1.ok) {
+          const ab = await r1.arrayBuffer();
+          this.cachedStaticNoteMissBuffer = await ctx.decodeAudioData(ab);
+        }
+      }
+    } catch {
+      // Continue gracefully
+    }
+    try {
+      if (!this.cachedSonicJumpscareBuffer) {
+        const r2 = await fetch('/audio/sonic_jumpscare.ogg');
+        if (r2.ok) {
+          const ab = await r2.arrayBuffer();
+          this.cachedSonicJumpscareBuffer = await ctx.decodeAudioData(ab);
+        }
+      }
+    } catch {
+      // Continue gracefully
+    }
+  }
+
+  private getStaticMissAudio(): HTMLAudioElement | null {
+    if (typeof window === 'undefined') return null;
+    let audio = this.staticMissAudioPool.find((a) => a.paused || a.ended);
+    if (!audio) {
+      audio = new Audio('/audio/static_note_miss.ogg');
+      audio.preload = 'auto';
+      if (this.staticMissAudioPool.length < 8) {
+        this.staticMissAudioPool.push(audio);
+      }
+    }
+    return audio;
+  }
+
+  private getSonicJumpscareAudio(): HTMLAudioElement | null {
+    if (typeof window === 'undefined') return null;
+    let audio = this.sonicJumpscareAudioPool.find((a) => a.paused || a.ended);
+    if (!audio) {
+      audio = new Audio('/audio/sonic_jumpscare.ogg');
+      audio.preload = 'auto';
+      if (this.sonicJumpscareAudioPool.length < 6) {
+        this.sonicJumpscareAudioPool.push(audio);
+      }
+    }
+    return audio;
+  }
+
+  /**
+   * Audio for missing a static note - strictly unremixed original audio, exactly 300 ms (0.3 seconds)
+   */
+  public playStaticNoteMissSound() {
+    const ctx = this.ensureContext();
+    if (ctx && this.masterGain && this.cachedStaticNoteMissBuffer && ctx.state === 'running') {
+      try {
+        const src = ctx.createBufferSource();
+        src.buffer = this.cachedStaticNoteMissBuffer;
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.85, ctx.currentTime);
+        src.connect(gain);
+        gain.connect(this.masterGain);
+        src.start(ctx.currentTime);
+        return;
+      } catch {
+        // Fallback to HTML audio element
+      }
+    }
+
+    // Direct, fluent unremixed HTML5 Audio playback
+    const audio = this.getStaticMissAudio();
+    if (audio) {
+      audio.currentTime = 0;
+      audio.volume = 0.85;
+      audio.play().catch(() => {});
+    }
+  }
+
+  /**
+   * Noise for Sonic's PNG jumpscare - strictly unremixed original screech
+   */
+  public playSonicJumpscareSound() {
+    const ctx = this.ensureContext();
+    if (ctx && this.masterGain && this.cachedSonicJumpscareBuffer && ctx.state === 'running') {
+      try {
+        const src = ctx.createBufferSource();
+        src.buffer = this.cachedSonicJumpscareBuffer;
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.95, ctx.currentTime);
+        src.connect(gain);
+        gain.connect(this.masterGain);
+        src.start(ctx.currentTime);
+        return;
+      } catch {
+        // Fallback to HTML audio element
+      }
+    }
+
+    // Direct, fluent unremixed HTML5 Audio playback
+    const audio = this.getSonicJumpscareAudio();
+    if (audio) {
+      audio.currentTime = 0;
+      audio.volume = 0.95;
+      audio.play().catch(() => {});
+    }
   }
 
   public playMenuTick(high = false) {

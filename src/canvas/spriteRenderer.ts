@@ -112,6 +112,9 @@ export function preloadSpritesForSong(songId: string) {
     '/sprites/ui/num7.png',
     '/sprites/ui/num8.png',
     '/sprites/ui/num9.png',
+    '/sprites/red_static.png',
+    '/sprites/red_static_2.png',
+    '/sprites/red_static_3.png',
   ]);
   if (songId === 'too-slow' || songId === 'too-slow-encore') {
     needed.add('/sprites/hillSkyAndBack.png');
@@ -2823,6 +2826,432 @@ export function drawSpeakerGirlfriend(
   ctx.restore(); // End Head
   ctx.restore(); // End GF
   ctx.restore();
+}
+
+/**
+ * Exact Standing & Pointing Girlfriend during the "I AM GOD" cutscene (matching the reference video!)
+ * GF stands in her red dress and red boots with white cuffs, left hand on hip, right arm pointing at Sonic.EXE.
+ */
+export function drawCutsceneStandingGirlfriend(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  timeMs: number,
+  bpm: number
+) {
+  ctx.save();
+  ctx.translate(x, y);
+
+  const beatPeriod = 60000 / bpm;
+  const beatPhase = (((timeMs % beatPeriod) + beatPeriod) % beatPeriod) / beatPeriod;
+  const bop = Math.abs(Math.sin(beatPhase * Math.PI)) * 4.5;
+  const sway = Math.sin((timeMs / beatPeriod) * Math.PI) * 0.025;
+
+  // Ground shadow
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+  ctx.beginPath();
+  ctx.ellipse(0, 8, 52, 14, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.rotate(sway);
+  ctx.translate(0, -bop * 0.5);
+
+  const skin = '#FDE2C8';
+  const dressRed = '#E11D48';
+  const hairDark = '#5C1417';
+  const hairMid = '#881337';
+
+  // 1. Long Auburn Back Hair flowing behind body
+  ctx.fillStyle = hairDark;
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(-28, -130);
+  ctx.quadraticCurveTo(-62, -70, -56, -10);
+  ctx.quadraticCurveTo(-26, 40, -10, 48);
+  ctx.quadraticCurveTo(24, 38, 48, -10);
+  ctx.quadraticCurveTo(56, -70, 24, -130);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // 2. Legs & Red High-Heel Boots (Standing tall)
+  ctx.fillStyle = skin;
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 3.5;
+  ctx.beginPath();
+  ctx.roundRect(-22, -45, 14, 48, 6);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.roundRect(6, -45, 14, 48, 6);
+  ctx.fill();
+  ctx.stroke();
+
+  // White boot cuffs
+  ctx.fillStyle = '#FFFFFF';
+  ctx.beginPath();
+  ctx.roundRect(-26, -12, 22, 12, 4);
+  ctx.roundRect(2, -12, 22, 12, 4);
+  ctx.fill();
+  ctx.stroke();
+
+  // Red Boots
+  ctx.fillStyle = dressRed;
+  ctx.beginPath();
+  ctx.moveTo(-25, 0);
+  ctx.lineTo(-24, 8);
+  ctx.lineTo(-7, 8);
+  ctx.lineTo(-6, 0);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(3, 0);
+  ctx.lineTo(4, 8);
+  ctx.lineTo(21, 8);
+  ctx.lineTo(22, 0);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // 3. Red Sleeveless Minidress & White Ruffle Collar
+  ctx.fillStyle = dressRed;
+  ctx.beginPath();
+  ctx.moveTo(-28, -112);
+  ctx.lineTo(-32, -46);
+  ctx.quadraticCurveTo(0, -40, 32, -46);
+  ctx.lineTo(28, -112);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // White ruffled collar at neck
+  ctx.fillStyle = '#FFFFFF';
+  ctx.beginPath();
+  ctx.ellipse(0, -114, 18, 7, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // 4. Left Arm (Hand bent resting firmly on hip)
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 11;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(22, -106);
+  ctx.lineTo(46, -82);
+  ctx.lineTo(26, -66);
+  ctx.stroke();
+
+  ctx.strokeStyle = skin;
+  ctx.lineWidth = 7.5;
+  ctx.beginPath();
+  ctx.moveTo(22, -106);
+  ctx.lineTo(46, -82);
+  ctx.lineTo(26, -66);
+  ctx.stroke();
+
+  ctx.fillStyle = skin;
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(26, -66, 7, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // 5. Right Arm (Raised and pointing index finger straight to the left at Sonic.EXE!)
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 11;
+  ctx.beginPath();
+  ctx.moveTo(-22, -106);
+  ctx.lineTo(-58, -108);
+  ctx.lineTo(-94, -112);
+  ctx.stroke();
+
+  ctx.strokeStyle = skin;
+  ctx.lineWidth = 7.5;
+  ctx.beginPath();
+  ctx.moveTo(-22, -106);
+  ctx.lineTo(-58, -108);
+  ctx.lineTo(-94, -112);
+  ctx.stroke();
+
+  // Pointing hand & extended index finger
+  ctx.fillStyle = skin;
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.ellipse(-95, -112, 8, 7, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.roundRect(-116, -115, 23, 6.5, 3);
+  ctx.fill();
+  ctx.stroke();
+
+  // 6. Girlfriend's Head (Looking to the left at Sonic with annoyed/stern defiance)
+  ctx.save();
+  ctx.translate(0, -128);
+
+  ctx.fillStyle = skin;
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 3.5;
+  ctx.beginPath();
+  ctx.ellipse(-2, 0, 24, 21, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = hairMid;
+  ctx.beginPath();
+  ctx.moveTo(-26, -18);
+  ctx.quadraticCurveTo(-14, -28, 12, -26);
+  ctx.quadraticCurveTo(28, -20, 26, 4);
+  ctx.quadraticCurveTo(14, -6, -2, -8);
+  ctx.quadraticCurveTo(-16, -6, -26, 8);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // Left eye (looking left)
+  ctx.fillStyle = '#FFFFFF';
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.ellipse(-12, -1, 7, 5, -0.1, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = '#78350F';
+  ctx.beginPath();
+  ctx.arc(-14, -1, 3.2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#000000';
+  ctx.beginPath();
+  ctx.arc(-14, -1, 1.8, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Right eye
+  ctx.fillStyle = '#FFFFFF';
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.ellipse(5, -2, 6.5, 5, 0.1, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = '#78350F';
+  ctx.beginPath();
+  ctx.arc(3.5, -2, 3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#000000';
+  ctx.beginPath();
+  ctx.arc(3.5, -2, 1.6, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Stern Eyebrows angled down
+  ctx.strokeStyle = '#381216';
+  ctx.lineWidth = 2.8;
+  ctx.beginPath();
+  ctx.moveTo(-18, -9);
+  ctx.lineTo(-7, -7);
+  ctx.moveTo(1, -7);
+  ctx.lineTo(12, -9);
+  ctx.stroke();
+
+  // Confident/unimpressed mouth
+  ctx.strokeStyle = '#881337';
+  ctx.lineWidth = 2.2;
+  ctx.beginPath();
+  ctx.moveTo(-10, 11);
+  ctx.lineTo(2, 11);
+  ctx.stroke();
+
+  ctx.restore(); // End head
+  ctx.restore(); // End GF
+}
+
+/**
+ * Exact Shivering Scared Boyfriend during the "I AM GOD" cutscene (matching the reference video!)
+ * BF trembles in fear with chattering teeth, sweat drop popping, bruises on cheek and clothes, holding mic.
+ */
+export function drawCutsceneScaredBoyfriend(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  timeMs: number,
+  bpm: number
+) {
+  ctx.save();
+  ctx.translate(x, y);
+
+  // Fast frantic trembling jitter matching the video
+  const jitterX = (Math.sin(timeMs * 0.08) + Math.cos(timeMs * 0.13)) * 1.8;
+  const jitterY = Math.sin(timeMs * 0.11) * 1.2;
+  ctx.translate(jitterX, jitterY);
+
+  // Ground shadow
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+  ctx.beginPath();
+  ctx.ellipse(0, 8, 48, 12, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  const skin = '#FDE2C8';
+  const blueHair = '#2563EB';
+  const capRed = '#DC2626';
+
+  // 1. Shivering Knees & Baggy Pants
+  ctx.fillStyle = '#1E3A8A';
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 3.5;
+  ctx.beginPath();
+  ctx.roundRect(-24, -40, 18, 38, 6);
+  ctx.roundRect(4, -40, 18, 38, 6);
+  ctx.fill();
+  ctx.stroke();
+
+  // Red and cyan sneakers
+  ctx.fillStyle = '#EF4444';
+  ctx.beginPath();
+  ctx.roundRect(-30, -5, 26, 12, 4);
+  ctx.roundRect(4, -5, 26, 12, 4);
+  ctx.fill();
+  ctx.stroke();
+
+  // 2. White Shirt with red blood scratches
+  ctx.fillStyle = '#F8FAFC';
+  ctx.beginPath();
+  ctx.roundRect(-22, -88, 42, 50, 8);
+  ctx.fill();
+  ctx.stroke();
+
+  // Blood marks / scratches on shirt
+  ctx.fillStyle = '#DC2626';
+  ctx.beginPath();
+  ctx.moveTo(-12, -65);
+  ctx.lineTo(-4, -52);
+  ctx.lineTo(-6, -48);
+  ctx.lineTo(-15, -60);
+  ctx.fill();
+
+  // 3. Trembling Hands clutching Microphone close to chest
+  ctx.fillStyle = '#1F2937';
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.roundRect(-8, -80, 12, 28, 4);
+  ctx.fill();
+  ctx.stroke();
+  // Red mic mesh
+  ctx.fillStyle = '#DC2626';
+  ctx.beginPath();
+  ctx.arc(-2, -84, 11, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // White gloved trembling hands
+  ctx.fillStyle = '#FFFFFF';
+  ctx.beginPath();
+  ctx.ellipse(-10, -68, 9, 8, -0.2, 0, Math.PI * 2);
+  ctx.ellipse(4, -68, 9, 8, 0.2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // 4. Terrified Face & Shaking Chattering Teeth
+  ctx.save();
+  ctx.translate(0, -104);
+
+  // Face oval
+  ctx.fillStyle = skin;
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 3.5;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 25, 22, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // Red scratch/bruise on right cheek (from video!)
+  ctx.strokeStyle = '#DC2626';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(12, 2);
+  ctx.lineTo(19, 9);
+  ctx.moveTo(15, 0);
+  ctx.lineTo(21, 5);
+  ctx.stroke();
+
+  // Huge wide open white terrified eyes
+  ctx.fillStyle = '#FFFFFF';
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 2.8;
+  ctx.beginPath();
+  ctx.ellipse(-9, -4, 9, 10, -0.1, 0, Math.PI * 2);
+  ctx.ellipse(9, -4, 9, 10, 0.1, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // Tiny shaking black pupils darting in fear
+  const eyeDart = Math.sin(timeMs * 0.05) * 1.5;
+  ctx.fillStyle = '#000000';
+  ctx.beginPath();
+  ctx.arc(-11 + eyeDart, -4, 2.8, 0, Math.PI * 2);
+  ctx.arc(7 + eyeDart, -4, 2.8, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Chattering mouth with visible teeth
+  const teethJitter = Math.sin(timeMs * 0.14) > 0 ? 2 : 0;
+  ctx.fillStyle = '#1F1116';
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.roundRect(-9, 8 + teethJitter, 18, 9, 3);
+  ctx.fill();
+  ctx.stroke();
+  // White chattering teeth row
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(-8, 9 + teethJitter, 16, 3.5);
+
+  // Cold sweat droplets popping off forehead (matching video "SICK!!")
+  ctx.fillStyle = '#60A5FA';
+  ctx.strokeStyle = '#1D4ED8';
+  ctx.lineWidth = 1.5;
+  const sweatBob = Math.sin(timeMs * 0.03) * 3;
+  ctx.beginPath();
+  ctx.arc(-22, -22 + sweatBob, 4.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // 5. Blue Spiky Hair & Red Backward Cap
+  ctx.fillStyle = capRed;
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 3.5;
+  ctx.beginPath();
+  ctx.arc(0, -14, 26, Math.PI, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  // Backward cap brim
+  ctx.beginPath();
+  ctx.roundRect(14, -20, 20, 7, 3);
+  ctx.fill();
+  ctx.stroke();
+
+  // Big cyan hair spikes bursting from cap
+  ctx.fillStyle = blueHair;
+  ctx.beginPath();
+  ctx.moveTo(-22, -18);
+  ctx.lineTo(-44, -34);
+  ctx.lineTo(-24, -30);
+  ctx.lineTo(-38, -50);
+  ctx.lineTo(-14, -38);
+  ctx.lineTo(-8, -56);
+  ctx.lineTo(2, -38);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.restore(); // End head
+  ctx.restore(); // End BF
 }
 
 // Helper to draw Sonic.exe's crimson-red grid microphone (from sonic.exe sprites.webp)
@@ -6449,6 +6878,61 @@ export function drawSonicJumpscare(
   } else {
     drawOpponentSprite(ctx, w * 0.5, h * 0.58, 'sonic-exe', 'gotcha', 0, 130);
   }
+  ctx.restore();
+}
+
+/**
+ * Renders the full-screen red static TV noise effect matching unnamed.jpg
+ * Displayed for exactly 300 ms (0.3s) when missing a static note.
+ */
+export function drawStaticNoteMissEffect(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  remainingMs: number
+) {
+  if (typeof document === 'undefined') return;
+  ctx.save();
+
+  // Rapidly alternate between red static sprite frames for dynamic TV jitter
+  const framePick = Math.floor(Date.now() / 60) % 3;
+  const spritePath =
+    framePick === 0
+      ? '/sprites/red_static.png'
+      : framePick === 1
+        ? '/sprites/red_static_2.png'
+        : '/sprites/red_static_3.png';
+  const img = getSpriteSheet(spritePath) || getSpriteSheet('/sprites/red_static.png');
+
+  if (img) {
+    ctx.globalAlpha = 1.0;
+    ctx.drawImage(img, 0, 0, w, h);
+  } else {
+    // High-fidelity procedural red static fallback if image is still decoding
+    ctx.fillStyle = '#060002';
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = 'rgba(215, 18, 18, 0.85)';
+    for (let y = 0; y < h; y += 4) {
+      if (Math.random() > 0.35) {
+        ctx.fillRect(0, y, w, 2.5);
+      }
+    }
+  }
+
+  // Intense horizontal scanlines and dynamic red glitch bars matching unnamed.jpg
+  ctx.fillStyle = 'rgba(220, 0, 0, 0.32)';
+  for (let i = 0; i < 6; i++) {
+    const barY = ((Date.now() * 0.4 + i * (h / 5.2)) % h);
+    const barH = 14 + (i % 3) * 12;
+    ctx.fillRect(0, barY, w, barH);
+  }
+
+  // CRT scanlines
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+  for (let y = 0; y < h; y += 3) {
+    ctx.fillRect(0, y, w, 1);
+  }
+
   ctx.restore();
 }
 
